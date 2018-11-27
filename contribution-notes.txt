@@ -1,0 +1,4 @@
+Parker: Docker container issues + bug fixes + increment everywhere
+Matt: Implement vector clock stucture + basic broadcast + some view change propogation
+Joey: Implemented delete functionality, basic view change broadcast, and some VC logic
+Ryan: helped designed basic broadcast logic + fixed broadcast functionality, added timestamp functionality
