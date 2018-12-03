@@ -106,7 +106,7 @@ class vector_clock():
     #     self.clock = other.clock
 
 class kvs_node(Resource):
-    def handle_put(self, key, data, ts):
+    def handle_put(self, key, data, ts, lc):
 
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
@@ -123,7 +123,7 @@ class kvs_node(Resource):
         # put_vc.clock = copy.deepcopy(local_vc.clock)
         # put_vc.increment_clock()
         if key not in key_value_db:
-            key_value_db[key] = (data, ts)
+            key_value_db[key] = (data, ts, lc)
             return Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
@@ -131,7 +131,7 @@ class kvs_node(Resource):
             }), status=200, mimetype=u'application/json')
 
         else:
-            key_value_db[key] = (data, ts)
+            key_value_db[key] = (data, ts, lc)
             return Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',

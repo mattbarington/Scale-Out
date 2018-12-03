@@ -1,0 +1,38 @@
+Alright fam this is the protocol:
+
+Payload (Client write):
+ - status
+    ~ This is the status of the message (e.g. 200, 404, ...etc.)
+ - key
+    ~ key to write to in the KVS
+ - value
+    ~ value to write to in the KVS
+ - value timestamp
+    ~ timestamp from when the client did a GET
+ - key lamport clock
+    ~ integer count of writes to this key
+ - hop list
+    ~ list of nodes who have seen the payload
+
+PUT:
+ - Check the hop list
+    ~ If not on, edit to include your node IP, then broadcast
+    ~ If on, do not broadcast, just return
+ - Compare the payload key-lamport-clock to the node's key-lamport-clock
+    ~ If greater than, 
+      - update node's key-lamport-clock
+      - update value
+    ~ If less than
+      - do nothing, it is old and ignored
+
+SEARCH:
+ - return key, value, timestamp, key-lamport-clock
+
+GET:
+ - Compare key-lamport-clock to node's
+    ~ if greater
+      - return 'Too Old'
+    ~
+      - return the value
+
+
