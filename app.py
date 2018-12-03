@@ -105,7 +105,7 @@ class vector_clock():
     #     self.clock = other.clock
 
 class kvs_node(Resource):
-    def handle_put(self, key, data, ts):
+    def handle_put(self, key, data, ts, lc):
 
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
@@ -122,7 +122,7 @@ class kvs_node(Resource):
         put_vc.clock = copy.deepcopy(local_vc.clock)
         put_vc.increment_clock()
         if key not in key_value_db:
-            key_value_db[key] = (data, ts)
+            key_value_db[key] = (data, ts, lc)
             return Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
@@ -130,7 +130,7 @@ class kvs_node(Resource):
             }), status=200, mimetype=u'application/json')
 
         else:
-            key_value_db[key] = (data, ts)
+            key_value_db[key] = (data, ts, lc)
             return Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',
@@ -204,7 +204,7 @@ class kvs_node(Resource):
             if local_vc < msg_vc:
                 print("Is the clock actually less than?", file=sys.stderr)
                 local_vc.clock = copy.deepcopy(msg_vc.clock)
-                temp = self.handle_put(key, value, msg_vc.timestamp)
+                temp = self.handle_put(key, value, msg_vc.timestamp, 69)
                 buffered_keys[key] = msg_vc.timestamp
                 broadcast(key, value, local_vc.to_dict())
                 return temp
@@ -224,7 +224,7 @@ class kvs_node(Resource):
                         # compare timestamps
                         if buffered_keys[key] < msg_key.timestamp:
                             # the messages timestamp is newer, so its value wins
-                            temp = self.handle_put(key, value, ts)
+                            temp = self.handle_put(key, value, ts, 69)
                             broadcast(key, value, local_vc.to_dict())
                             return temp
                             # the messages value is older, so it is ignored
@@ -234,7 +234,7 @@ class kvs_node(Resource):
                         # update vector clock
                         local_vc.update_clock(msg_vc)
                         # broadcast
-                        temp = self.handle_put(key, value, ts)
+                        temp = self.handle_put(key, value, ts, 69)
                         broadcast(key, value, local_vc.to_dict())
                         return temp
             return
