@@ -70,6 +70,7 @@ class vector_clock():
         self.clock[my_ip] += 1
 
     def update_clock(self, other):
+        # self.clock[other.IP] = other.clock[other.IP]
         for ip in self.clock:
             if other.clock[ip] > self.clock[ip]:
                 self.clock[ip] = other.clock[ip]
@@ -118,15 +119,15 @@ class kvs_node(Resource):
         #         'result': 'Error',
         #         'msg': 'Object too large. Size limit is 1MB'
         #     }))
-        put_vc = vector_clock()
-        put_vc.clock = copy.deepcopy(local_vc.clock)
-        put_vc.increment_clock()
+        # put_vc = vector_clock()
+        # put_vc.clock = copy.deepcopy(local_vc.clock)
+        # put_vc.increment_clock()
         if key not in key_value_db:
             key_value_db[key] = (data, ts)
             return Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
-                'payload' : put_vc.to_dict(),
+                'payload' : {},
             }), status=200, mimetype=u'application/json')
 
         else:
@@ -134,7 +135,7 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',
-                'payload' : put_vc.to_dict(),
+                'payload' : {},
             }), status=201, mimetype=u'application/json')
 
     def get(self, key):
@@ -152,19 +153,19 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'result':'Error',
                 'msg' : 'Key does not exist',
-                'payload': local_vc.to_dict()}),
-                status=404, mimetype=u'application/json')
+                'payload': {}
+                }), status=404, mimetype=u'application/json')
 
         # Spec says to return value of key if key
         # in database along with payload with return status of 200
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][0],
-            'payload' :  local_vc.to_dict(),
-        }),
-        status=200, mimetype=u'application/json')
+            'payload' :  {},
+        }), status=200, mimetype=u'application/json')
 
     def delete(self,key):
+        hop_list = []
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
                 'msg':'Key not valid',
@@ -173,14 +174,14 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'result':'Error',
                 'msg':'Key does not exist',
-                'payload':local_vc.to_dict()}),
+                'payload':hop_list}),
                 status=404, mimetype=u'application/json')
         del key_value_db[key]
         broadcastDelete(key, local_vc.to_dict())
         return Response(json.dumps({
             'result':'Success',
             'msg':'Key deleted',
-            'payload' :  local_vc.to_dict(),
+            'payload' :  hop_list,
             }),
             status=200, mimetype=u'application/json')
 
@@ -191,53 +192,69 @@ class kvs_node(Resource):
 
         print("\nPayload is type: %s\nPayload is: %s\n" %(type(payload),payload), file=sys.stderr)
 
-        if value:
-            msg_vc = vector_clock()
 
-            payload = ast.literal_eval(payload)
-            msg_vc.clock = payload.get('clock')
+        hop_list = list(ast.literal_eval(payload))
 
-            print('local clock = %s' %local_vc.clock, file=sys.stderr)
-            print('message clock = %s' %msg_vc.clock, file=sys.stderr)
-            print('comparison = %s' %(local_vc < msg_vc), file=sys.stderr)
+        print("Here's the hop set:",file=sys.stderr)
+        print(hop_list,file=sys.stderr)
+        if my_ip not in hop_list:
+            hop_list.append(my_ip)
+            print("Let's rebroadcast beyotch", file=sys.stderr)
+            temp = self.handle_put(key, value, hop_list)
+            broadcast(key, value, hop_list)
+            return temp
+        else:
+            print("Im already in this bitch",file=sys.stderr)
+        return
 
-            if local_vc < msg_vc:
-                print("Is the clock actually less than?", file=sys.stderr)
-                local_vc.clock = copy.deepcopy(msg_vc.clock)
-                temp = self.handle_put(key, value, msg_vc.timestamp)
-                buffered_keys[key] = msg_vc.timestamp
-                broadcast(key, value, local_vc.to_dict())
-                return temp
-            # case of concurrency
-            if not local_vc < msg_vc and not msg_vc < local_vc:
-                # equivalence
-                if local_vc == msg_vc:
-                    # the node is up to date so the message is ignored
-                    # the value is removed from the buffered key
-                    del buffered_keys[key]
-                else:
-                    # clocks are concurrent but not equal
-
-                    # compare the key with the buffered keys
-                    # if the key is the same as message sent
-                    if key in buffered_keys:
-                        # compare timestamps
-                        if buffered_keys[key] < msg_key.timestamp:
-                            # the messages timestamp is newer, so its value wins
-                            temp = self.handle_put(key, value, ts)
-                            broadcast(key, value, local_vc.to_dict())
-                            return temp
-                            # the messages value is older, so it is ignored
-                            return
-                    else:
-                        # if it is a different key, it can be put in
-                        # update vector clock
-                        local_vc.update_clock(msg_vc)
-                        # broadcast
-                        temp = self.handle_put(key, value, ts)
-                        broadcast(key, value, local_vc.to_dict())
-                        return temp
-            return
+        # if value:
+        #     msg_vc = vector_clock()
+        #
+        #     payload = ast.literal_eval(payload)
+        #     msg_vc.clock = payload.get('clock')
+        #
+        #     print('local clock = %s' %local_vc.clock, file=sys.stderr)
+        #     print('message clock = %s' %msg_vc.clock, file=sys.stderr)
+        #     print('comparison = %s' %(local_vc < msg_vc), file=sys.stderr)
+        #
+        #     if local_vc < msg_vc:
+        #         print("Let's rebroadcast beyotch", file=sys.stderr)
+        #         print("Is the clock actually less than?", file=sys.stderr)
+        #         local_vc.clock = copy.deepcopy(msg_vc.clock)
+        #         temp = self.handle_put(key, value, msg_vc.timestamp)
+        #         buffered_keys[key] = msg_vc.timestamp
+        #         broadcast(key, value, local_vc.to_dict())
+        #         return temp
+        #     # case of concurrency
+        #     if not local_vc < msg_vc and not msg_vc < local_vc:
+        #         # equivalence
+        #         if local_vc == msg_vc:
+        #             # the node is up to date so the message is ignored
+        #             # the value is removed from the buffered key
+        #             del buffered_keys[key]
+        #         else:
+        #             # clocks are concurrent but not equal
+        #
+        #             # compare the key with the buffered keys
+        #             # if the key is the same as message sent
+        #             if key in buffered_keys:
+        #                 # compare timestamps
+        #                 if buffered_keys[key] < msg_key.timestamp:
+        #                     # the messages timestamp is newer, so its value wins
+        #                     temp = self.handle_put(key, value, ts)
+        #                     broadcast(key, value, local_vc.to_dict())
+        #                     return temp
+        #                     # the messages value is older, so it is ignored
+        #                     return
+        #             else:
+        #                 # if it is a different key, it can be put in
+        #                 # update vector clock
+        #                 local_vc.update_clock(msg_vc)
+        #                 # broadcast
+        #                 temp = self.handle_put(key, value, ts)
+        #                 broadcast(key, value, local_vc.to_dict())
+        #                 return temp
+        #     return
 
 class kvs_search(Resource):
   def get(self, key):
@@ -254,16 +271,18 @@ class kvs_search(Resource):
         print("Got to here after GET #2", file=sys.stderr)
         print(local_vc.clock, file=sys.stderr)
 
+        hop_list = []
+
         if key not in key_value_db:
             return Response(json.dumps({
                 'isExists': False,
                 'result':'Success',
-                'payload' :  search_vc.to_dict()}),
+                'payload' :  hop_list}),
                 status=200, mimetype=u'application/json')
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
-            'payload':  search_vc.to_dict()}),
+            'payload':  hop_list}),
             status=200, mimetype=u'application/json')
 
 class kvs_view(Resource):
