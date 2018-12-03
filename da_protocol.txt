@@ -1,12 +1,13 @@
 Alright fam this is the protocol:
 
-Payload (Client write):
- - status
-    ~ This is the status of the message (e.g. 200, 404, ...etc.)
+Send:
  - key
     ~ key to write to in the KVS
  - value
     ~ value to write to in the KVS
+ - payload
+
+Payload (Client write):
  - value timestamp
     ~ timestamp from when the client did a GET
  - key lamport clock
