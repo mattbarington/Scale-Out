@@ -42,8 +42,8 @@ def storeKeyValue(ipPort, key, value, payload):
     # dicty = json.loads(payload)
     # print("dicty: ")
     # print(dicty)
-    print("clock:")
-    print(payload.get('clock'))
+    #print("clock:")
+    #print(payload.get('clock'))
     # print('PUT: http://%s/keyValue-store/%s'%(str(ipPort), key))
     return requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': json.dumps(payload)} )
 

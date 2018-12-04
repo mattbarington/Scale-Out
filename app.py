@@ -17,6 +17,9 @@ buffered_keys = {}
 view_list = os.environ.get('VIEW').split(',')
 my_ip = os.environ.get('IP_PORT')
 
+def dprint(msg):
+    print(msg, file=sys.stderr)
+
 def max(a,b):
     if a > b:
         return a
@@ -139,7 +142,7 @@ class kvs_node(Resource):
             }), status=201, mimetype=u'application/json')
 
     def get(self, key):
-        print("Doing GET #1\n", file=sys.stderr)
+        dprint("Doing GET #1\n")
         # local_vc.increment_clock()
         # Spec says nothing about key length
         # if len(key) > 200 or len(key) < 1:
@@ -195,16 +198,16 @@ class kvs_node(Resource):
 
         hop_list = list(ast.literal_eval(payload))
 
-        print("Here's the hop set:",file=sys.stderr)
-        print(hop_list,file=sys.stderr)
+        dprint("Here's the hop set:")
+        dprint(hop_list)
         if my_ip not in hop_list:
             hop_list.append(my_ip)
-            print("Let's rebroadcast beyotch", file=sys.stderr)
-            temp = self.handle_put(key, value, hop_list)
+            dprint("Not in hop list, rebroadcasting")
+            temp = self.handle_put(key, value, hop_list, 444)
             broadcast(key, value, hop_list)
             return temp
         else:
-            print("Im already in this bitch",file=sys.stderr)
+            dprint("Already in hop list")
         return
 
         # if value:
@@ -258,18 +261,18 @@ class kvs_node(Resource):
 
 class kvs_search(Resource):
   def get(self, key):
-        print("Doing GET #2\n", file=sys.stderr)
+        dprint("Doing GET #2\n")
         search_vc = vector_clock()
-        print("New VC", file=sys.stderr)
-        print(search_vc.clock, file=sys.stderr)
+        dprint("New VC")
+        dprint(search_vc.clock)
         search_vc.clock = copy.deepcopy(local_vc.clock)
-        print("init VC", file=sys.stderr)
-        print(search_vc.clock, file=sys.stderr)
+        dprint("init VC")
+        dprint(search_vc.clock)
         search_vc.increment_clock()
-        print("incremented VC", file=sys.stderr)
-        print(search_vc.clock, file=sys.stderr)
-        print("Got to here after GET #2", file=sys.stderr)
-        print(local_vc.clock, file=sys.stderr)
+        dprint("incremented VC")
+        dprint(search_vc.clock)
+        dprint("Got to here after GET #2")
+        dprint(local_vc.clock)
 
         hop_list = []
 
