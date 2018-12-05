@@ -16,11 +16,19 @@ buffered_keys = {}
 
 view_list = os.environ.get('VIEW').split(',')
 my_ip = os.environ.get('IP_PORT')
+#initial number of shards
+numShards = int(os.environ.get('S'))
+#list of all shards in the system
+shard_ids = []
+for x in range (1, numshards):
+  shard_ids.append(x)
+#number of key-value pairs this shard is responsible for 
+shard_count = 0
 #TODO
 #shardID = this node's shard
-#shard_ids = list of all shards in the system
 #shard_members = list of all this shard's members as IP addresses 
-#shard_count = number of key-value pairs this shard is responsible for
+
+
 
 def dprint(msg):
     print(msg, file=sys.stderr)
@@ -362,7 +370,7 @@ class kvs_shard_all_ids(Resource):
   def get(self):
     return Response(json.dumps({
       'result' : 'Success',
-      'shard_ids' : shard_ids
+      'shard_ids' : ",".join(shard_ids)
     })
     status=200, mimetype=u'application/json')
 
@@ -399,7 +407,13 @@ class kvs_shard_count(Resource):
 class kvs_shard_changeShardNumber(Resource):
   def put(self):
     newNumber = request.form.get('num')
-    if True ##TODO propogate shard redistribution, return if succeeds
+    if newNumber == '0':
+      return Response(json.dumps({
+        'result' : 'Error',
+        'msg' : 'Must have at lease one shard'
+      })
+      status=400, mimetype=u'application/json')
+    else if True ##TODO propogate shard redistribution, return if succeeds
       return Response(json.dumps({
         'result' : 'Success',
         'shard_ids' : shard_ids
