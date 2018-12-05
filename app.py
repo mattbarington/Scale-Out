@@ -109,7 +109,7 @@ class vector_clock():
     #     self.clock = other.clock
 
 class kvs_node(Resource):
-    def handle_put(self, key, data, ts, lc):
+    def handle_put(self, key, data, ts, vc):
 
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
@@ -126,7 +126,7 @@ class kvs_node(Resource):
         # put_vc.clock = copy.deepcopy(local_vc.clock)
         # put_vc.increment_clock()
         if key not in key_value_db:
-            key_value_db[key] = (data, ts, lc)
+            key_value_db[key] = (data, ts, vc)
             return Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
@@ -134,7 +134,7 @@ class kvs_node(Resource):
             }), status=200, mimetype=u'application/json')
 
         else:
-            key_value_db[key] = (data, ts, lc)
+            key_value_db[key] = (data, ts, vc)
             return Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',
@@ -189,23 +189,63 @@ class kvs_node(Resource):
             status=200, mimetype=u'application/json')
 
     def put(self, key):
-        # local_vc.increment_clock()
+
+        # Value to put in kvs
         value = request.form.get('val')
+        # Payload containing additional information:
+        # hop_list, timestamp, key vector clock
         payload = request.form.get('payload')
 
+        # DEBUG: printing the payload delivered
         print("\nPayload is type: %s\nPayload is: %s\n" %(type(payload),payload), file=sys.stderr)
 
-
+        # get the hop_list from the payload to be compared
         hop_list = list(ast.literal_eval(payload))
-
-        dprint("Here's the hop set:")
         dprint(hop_list)
+        # get the vector_clock from the payload
+        # TODO: nVC = <get from payload>
+        # dprint(nVC)
+        # get the timestamp from the payload
+        # TODO: nTS = <get from payload>
+        # dprint(nTS)
+
+        # only act on the payload if it has not already been seen yet
         if my_ip not in hop_list:
+
+            # add ip to hop list (don't process again)
             hop_list.append(my_ip)
+
+            # get key's vector_clock and timestamp
+            if(key in key_value_db):
+                kVC = key_value_db[key][2]
+                kTS = key_value_db[key][1]
+            else:
+                kVC = nVC
+                kTS = nTS
+
+            # check if the value should be put
+            # value VC is greater than
+            if VC_is_greater_than(nVC, kVC):
+                # update the KVS                
+            # value VC is less than
+            if VC_is_less_than(nVC, kVC):
+                # ignore, the new value is old
+            # value VC is equal to
+            if vc_is_equal_to(nVC, kVC):
+                # do nothing, it is the same value
+            else:
+                # clocks are concurrent but not equal
+                # compare timestamps to see who is newer
+                if nTS > kTS:
+                    # update the KVS
+                else:
+                    # ignore, the new value is old
+
+            temp = self.handle_put(key, value, nTS, nVC)
             dprint("Not in hop list, rebroadcasting")
-            temp = self.handle_put(key, value, hop_list, 444)
             broadcast(key, value, hop_list)
             return temp
+        # ignore if it has already been handled previously
         else:
             dprint("Already in hop list")
         return
