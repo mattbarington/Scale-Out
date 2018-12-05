@@ -10,8 +10,8 @@ Send:
 Payload (Client write):
  - value timestamp
     ~ timestamp from when the client did a GET
- - key lamport clock
-    ~ integer count of writes to this key
+ - key vector clock
+    ~ integer count of writes to this key by each view (dictionary)
  - hop list
     ~ list of nodes who have seen the payload
 
@@ -19,21 +19,26 @@ PUT:
  - Check the hop list
     ~ If not on, edit to include your node IP, then broadcast
     ~ If on, do not broadcast, just return
- - Compare the payload key-lamport-clock to the node's key-lamport-clock
+ - Compare the payload key-vector-clock to the node's key-vector-clock
     ~ If greater than, 
-      - update node's key-lamport-clock
-      - update value
+      - update node's kvs
+    ~ If equal than,
+      - compare payload timestamp to kvs key timestamp
+        ~ if payload newer, update kvs
     ~ If less than
       - do nothing, it is old and ignored
 
 SEARCH:
- - return key, value, timestamp, key-lamport-clock
+ - If key exists and delete flag is false
+   ~ return payload with key contents
+ - Else
+   ~ return key does not exist
 
 GET:
- - Compare key-lamport-clock to node's
+ - Compare payload vector clock with node's key vector clock
     ~ if greater
       - return 'Too Old'
-    ~
+    ~ else
       - return the value
 
 
