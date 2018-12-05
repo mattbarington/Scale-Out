@@ -50,7 +50,7 @@ def shardNodes(shardSize, nodeList, numKeys):
         shard_members = nodeList
         #check if this node needs to migrate data
         if numberOfKeys != 0:
-            reHashKeys()
+            #reHashKeys()
     else:
         shards = []
         for i in range(0, len(view_list) - 1):
@@ -60,11 +60,11 @@ def shardNodes(shardSize, nodeList, numKeys):
             if shard[view_list[i]] == shardID:
                 shard_members.append(view_list[i])
         if numberOfKeys != 0:
-            reHashKeys()
+            #reHashKeys()
 
 
 #TODO integrate data migration
-def reHashKeys():
+#def reHashKeys():
 
 def dprint(msg):
     print(msg, file=sys.stderr)
@@ -398,76 +398,76 @@ class kvs_view(Resource):
 
 class kvs_shard_my_id(Resource):
     def get(self):
-      return Response(json.dumps({
-        'id' : shardID
-      })
-      status=200, mimetype=u'application/json')
+        return Response(json.dumps({
+            'id' : shardID
+        })
+        status=200, mimetype=u'application/json')
 
 class kvs_shard_all_ids(Resource):
     def get(self):
-      return Response(json.dumps({
-        'result' : 'Success',
-        'shard_ids' : ",".join(shard_ids)
-      })
-      status=200, mimetype=u'application/json')
+        return Response(json.dumps({
+            'result' : 'Success',
+            'shard_ids' : ",".join(shard_ids)
+        })
+        status=200, mimetype=u'application/json')
 
 class kvs_shard_members(Resource):
     def get(self, input_id):
-      if input_id in shard_ids:
-        return Response(json.dumps({
-          'result' : 'Success',
-          'members' : shard_members
-        })
-       status=200, mimetype=u'application/json')
-      else:
-        return Response(json.dumps({
-          'result' : 'Error',
-          'msg' : 'No shard with id ' + input_id
-        })
-        status=404, mimetype=u'application/json')
+        if input_id in shard_ids:
+            return Response(json.dumps({
+                'result' : 'Success',
+                'members' : shard_members
+            })
+            status=200, mimetype=u'application/json')
+        else:
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'No shard with id ' + input_id
+            })
+            status=404, mimetype=u'application/json')
 
 class kvs_shard_count(Resource):
     def get(self, input_id):
-      if input_id in shard_ids:
-        return Response(json.dumps({
-          'result' : 'Success',
-          'Count' : numberOfKeys
-        })
-        status=200, mimetype=u'application/json')
-      else:
-        return Response(json.dumps({
-          'result' : 'Error',
-          'msg' : 'No shard with id ' + input_id
-        })
-        status=404, mimetype=u'application/json')
+        if input_id in shard_ids:
+            return Response(json.dumps({
+                'result' : 'Success',
+                'Count' : numberOfKeys
+            })
+            status=200, mimetype=u'application/json')
+        else:
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'No shard with id ' + input_id
+            })
+            status=404, mimetype=u'application/json')
 
 class kvs_shard_changeShardNumber(Resource):
     def put(self):
-      newNumber = request.form.get('num')
-      if newNumber == '0':
-       return Response(json.dumps({
-         'result' : 'Error',
-         'msg' : 'Must have at lease one shard'
-       })
-       status=400, mimetype=u'application/json')
-      else if True ##TODO propogate shard redistribution, return if succeeds
-        return Response(json.dumps({
-          'result' : 'Success',
-          'shard_ids' : shard_ids
-        })
-        status=200, mimetype=u'application/json')
-      else if True: #TODO if newNumber is greater than # of nodes in the view 
-        return Response(json.dumps({
-          'result' : 'Error',
-          'msg' : 'Not enough nodes for ' + newNumber + ' shards'
-        })
-        status=400, mimetype=u'application/json')
-      else: #TODO if there is only 1 node in any partition after redividing, abort
-        return Response(json.dumps({
-          'result' : 'Error',
-          'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
-        })
-        status=400, mimetype=u'application/json')
+        newNumber = request.form.get('num')
+        if newNumber == '0':
+          return Response(json.dumps({
+              'result' : 'Error',
+              'msg' : 'Must have at lease one shard'
+          })
+          status=400, mimetype=u'application/json')
+        else if True ##TODO propogate shard redistribution, return if succeeds
+            return Response(json.dumps({
+              'result' : 'Success',
+              'shard_ids' : shard_ids
+            })
+            status=200, mimetype=u'application/json')
+        else if True: #TODO if newNumber is greater than # of nodes in the view 
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'Not enough nodes for ' + newNumber + ' shards'
+            })
+            status=400, mimetype=u'application/json')
+        else: #TODO if there is only 1 node in any partition after redividing, abort
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
+            })
+            status=400, mimetype=u'application/json')
 
 
 
