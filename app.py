@@ -16,6 +16,11 @@ buffered_keys = {}
 
 view_list = os.environ.get('VIEW').split(',')
 my_ip = os.environ.get('IP_PORT')
+#TODO
+#shardID = this node's shard
+#shard_ids = list of all shards in the system
+#shard_members = list of all this shard's members as IP addresses 
+#shard_count = number of key-value pairs this shard is responsible for
 
 def dprint(msg):
     print(msg, file=sys.stderr)
@@ -338,10 +343,83 @@ class kvs_view(Resource):
             }),
             status=200, mimetype=u'application/json')
 
+class kvs_shard_my_id(Resource):
+  def get(self):
+    return Response(json.dumps({
+      'id' : shardID
+    })
+    status=200, mimetype=u'application/json')
+
+class kvs_shard_all_ids(Resource):
+  def get(self):
+    return Response(json.dumps({
+      'result' : 'Success',
+      'shard_ids' : shard_ids
+    })
+    status=200, mimetype=u'application/json')
+
+class kvs_shard_members(Resource):
+  def get(self, input_id):
+    if input_id in shard_ids:
+      return Response(json.dumps({
+        'result' : 'Success',
+        'members' : shard_members
+      })
+      status=200, mimetype=u'application/json')
+    else:
+      return Response(json.dumps({
+        'result' : 'Error',
+        'msg' : 'No shard with id ' + input_id
+      })
+      status=404, mimetype=u'application/json')
+
+class kvs_shard_count(Resource):
+  def get(self, input_id):
+    if input_id in shard_ids:
+      return Response(json.dumps({
+        'result' : 'Success',
+        'Count' : shard_count
+      })
+      status=200, mimetype=u'application/json')
+    else:
+      return Response(json.dumps({
+        'result' : 'Error',
+        'msg' : 'No shard with id ' + input_id
+      })
+      status=404, mimetype=u'application/json')
+
+class kvs_shard_changeShardNumber(Resource):
+  def put(self):
+    newNumber = request.form.get('num')
+    if True ##TODO propogate shard redistribution, return if succeeds
+      return Response(json.dumps({
+        'result' : 'Success',
+        'shard_ids' : shard_ids
+      })
+      status=200, mimetype=u'application/json')
+    else if True: #TODO if newNumber is greater than # of nodes in the view 
+      return Response(json.dumps({
+        'result' : 'Error',
+        'msg' : 'Not enough nodes for ' + newNumber + ' shards'
+      })
+      status=400, mimetype=u'application/json')
+    else: #TODO if there is only 1 node in any partition after redividing, abort
+      return Response(json.dumps({
+        'result' : 'Error',
+        'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
+      })
+      status=400, mimetype=u'application/json')
+
+
 
 api.add_resource(kvs_node, '/keyValue-store/<string:key>')
 api.add_resource(kvs_search, '/keyValue-store/search/<string:key>')
 api.add_resource(kvs_view, '/view')
+api.add_resource(kvs_shard_my_id, '/shard/my_id')
+api.add_resource(kvs_shard_all_ids, '/shard/all_ids')
+api.add_resource(kvs_shard_members, '/shard/members/<string:input_id>')
+api.add_resource(kvs_shard_count, '/shard/count/<string:input_id>')
+api.add_resource(kvs_shard_changeShardNumber, '/shard/count/changeShardNumber')
 
 print("ip and port = %s" %my_ip)
 
