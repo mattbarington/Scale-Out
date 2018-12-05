@@ -420,7 +420,7 @@ class kvs_shard_members(Resource):
         if int(input_id) in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
-                'members' : shard_members#TODO needs to return members of the correct shard
+                'members' : ",".join(shard_members)#TODO needs to return members of the correct shard
             }),
             status=200, mimetype=u'application/json')
         else:
