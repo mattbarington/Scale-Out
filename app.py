@@ -23,7 +23,7 @@ numShards = int(os.environ.get('S'))
 
 #list of all shards in the system
 shard_ids = []
-for x in range (1, numShards):
+for x in range (0, numShards-1):
   shard_ids.append(x)
 
 #number of key-value pairs this shard is responsible for 
@@ -411,16 +411,16 @@ class kvs_shard_all_ids(Resource):
     def get(self):
         return Response(json.dumps({
             'result' : 'Success',
-            'shard_ids' : ",".join(shard_ids)
+            'shard_ids' : ",".join(str(shard_ids))#TODO fix format
         }),
         status=200, mimetype=u'application/json')
 
 class kvs_shard_members(Resource):
     def get(self, input_id):
-        if input_id in shard_ids:
+        if int(input_id) in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
-                'members' : shard_members
+                'members' : shard_members#TODO needs to return members of the correct shard
             }),
             status=200, mimetype=u'application/json')
         else:
@@ -432,7 +432,7 @@ class kvs_shard_members(Resource):
 
 class kvs_shard_count(Resource):
     def get(self, input_id):
-        if input_id in shard_ids:
+        if int(input_id) in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
                 'Count' : numberOfKeys
@@ -482,7 +482,7 @@ api.add_resource(kvs_shard_my_id, '/shard/my_id')
 api.add_resource(kvs_shard_all_ids, '/shard/all_ids')
 api.add_resource(kvs_shard_members, '/shard/members/<string:input_id>')
 api.add_resource(kvs_shard_count, '/shard/count/<string:input_id>')
-api.add_resource(kvs_shard_changeShardNumber, '/shard/count/changeShardNumber')
+api.add_resource(kvs_shard_changeShardNumber, '/shard/changeShardNumber')
 
 print("ip and port = %s" %my_ip)
 
