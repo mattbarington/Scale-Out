@@ -61,52 +61,22 @@ def broadcastDelete(key, payload):
             deleteB(ipPort, key, payload)
 
 
-class vector_clock():
-    def __init__(self):
-        self.clock = {}
-        self.timestamp = datetime.now()
-        # self.IP = os.environ.get('IP_PORT')
-        for node in view_list:
-            self.clock[node] = 0
-
-    def increment_clock(self):
-        self.clock[my_ip] += 1
-
-    def update_clock(self, other):
-        # self.clock[other.IP] = other.clock[other.IP]
-        for ip in self.clock:
-            if other.clock[ip] > self.clock[ip]:
-                self.clock[ip] = other.clock[ip]
-
-    def __lt__(self,other):
-        all_equal = True
-        for ip in self.clock:
-            if self.clock.get(ip) > other.clock.get(ip):
-                return False
-            elif self.clock.get(ip) < other.clock.get(ip):
+def less_than(vc1, vc2):
+    all_equal = True
+    for ip in view_list:
+        if ip in vc1 and ip in vc2:
+            if vc1[ip] < vc2[ip]:
                 all_equal = False
-        return not all_equal
-
-    def __gt__(self,other):
-        all_equal = True
-        for ip in self.clock:
-            if self.clock.get(ip) < other.clock.get(ip):
+            elif vc1[ip] > vc2[ip]:
                 return False
-            elif self.clock.get(ip) > other.clock.get(ip):
-                all_equal = False
-        return not all_equal
+    return not all_equal
 
-    def __eq__(self,other):
-        for ip in self.clock:
-            if self.clock.get(ip) != other.clock.get(ip):
-                return False
+def overwrite(vc1, ts1, vc2, ts2):
+    if less_than(vc1, vc2):
         return True
-
-    def to_dict(self):
-	    return self.__dict__
-
-    # def copy(self, other):
-    #     self.clock = other.clock
+    if less_than(vc2, vc1):
+        return False
+    return ts1 > ts2
 
 class kvs_node(Resource):
     def handle_put(self, key, data, ts, lc):
@@ -143,12 +113,10 @@ class kvs_node(Resource):
 
     def get(self, key):
         dprint("Doing GET #1\n")
-        # local_vc.increment_clock()
-        # Spec says nothing about key length
-        # if len(key) > 200 or len(key) < 1:
-        #     return Response(json.dumps({
-        #         'msg':'Key not valid',
-        #         'result' : 'Error'}))
+        if len(key) > 200 or len(key) < 1:
+            return Response(json.dumps({
+                'msg':'Key not valid',
+                'result' : 'Error'}))
 
         # Spec says to return key does not exist if not in db
         # along with payload and 404 status
@@ -168,7 +136,8 @@ class kvs_node(Resource):
         }), status=200, mimetype=u'application/json')
 
     def delete(self,key):
-        hop_list = []
+        hop_list = []#list(ast.literal_eval(request.form.get('payload')))
+        dprint("DELETE hop_list:%s" % hop_list)
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
                 'msg':'Key not valid',
@@ -180,7 +149,7 @@ class kvs_node(Resource):
                 'payload':hop_list}),
                 status=404, mimetype=u'application/json')
         del key_value_db[key]
-        broadcastDelete(key, local_vc.to_dict())
+        broadcastDelete(key, hop_list)
         return Response(json.dumps({
             'result':'Success',
             'msg':'Key deleted',
@@ -189,7 +158,6 @@ class kvs_node(Resource):
             status=200, mimetype=u'application/json')
 
     def put(self, key):
-        # local_vc.increment_clock()
         value = request.form.get('val')
         payload = request.form.get('payload')
 
