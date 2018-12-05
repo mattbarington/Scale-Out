@@ -17,12 +17,13 @@ buffered_keys = {}
 view_list = os.environ.get('VIEW').split(',')
 view_list.sort()
 my_ip = os.environ.get('IP_PORT')
+
 #initial number of shards
 numShards = int(os.environ.get('S'))
 
 #list of all shards in the system
 shard_ids = []
-for x in range (1, numshards):
+for x in range (1, numShards):
   shard_ids.append(x)
 
 #number of key-value pairs this shard is responsible for 
@@ -34,12 +35,12 @@ shardID = 0
 #list of all this shard's members as IP addresses
 shard_members = []
 
-shardNodes(numShards, view_list, numberOfKeys)
 
-def shardNodes(shardSize, nodeList, numKeys):
+
+def shardNodes(shardSize, nodeList, numKeys, shard_members):
     #if not enough nodes to shard into specified size, default to 1
     #NOTE: this is only for initialization, not manual view/shard changes
-    if ((view_list.len() + 1)/2) < shardSize:
+    if ((len(view_list) + 1)/2) < shardSize:
         shardSize = 1
         shardID = 0
         shard_members = nodeList
@@ -53,17 +54,18 @@ def shardNodes(shardSize, nodeList, numKeys):
             reHashKeys()
 
     else:
-        shards = []
+        shard = []
+        shard_members = []
         for i in range(0, len(view_list) - 1):
-            shard[view_list[i]] = i % shardSize
-        shardID = shard[my_ip]
+            shard.append(i % shardSize)
+        shardID = shard[view_list.index(my_ip)]
         for i in range(0, len(view_list) - 1):
-            if shard[view_list[i]] == shardID:
+            if shard[i] == shardID:
                 shard_members.append(view_list[i])
         if numberOfKeys != 0:
             reHashKeys()
 
-
+shardNodes(numShards, view_list, numberOfKeys, shard_members)
 #TODO integrate data migration
 def reHashKeys():
     print('this shoud do something')
@@ -484,7 +486,7 @@ api.add_resource(kvs_shard_changeShardNumber, '/shard/count/changeShardNumber')
 
 print("ip and port = %s" %my_ip)
 
-local_vc = vector_clock()
+#local_vc = vector_clock()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
