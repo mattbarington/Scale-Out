@@ -44,13 +44,14 @@ def shardNodes(shardSize, nodeList, numKeys):
         shardID = 0
         shard_members = nodeList
     #if changing to one shard 
-    else if shardSize == 1: 
+    elif shardSize == 1: 
         shardSize = 1
         shardID = 0
         shard_members = nodeList
         #check if this node needs to migrate data
         if numberOfKeys != 0:
-            #reHashKeys()
+            reHashKeys()
+
     else:
         shards = []
         for i in range(0, len(view_list) - 1):
@@ -60,12 +61,13 @@ def shardNodes(shardSize, nodeList, numKeys):
             if shard[view_list[i]] == shardID:
                 shard_members.append(view_list[i])
         if numberOfKeys != 0:
-            #reHashKeys()
+            reHashKeys()
 
 
 #TODO integrate data migration
-#def reHashKeys():
-
+def reHashKeys():
+    print('this shoud do something')
+    
 def dprint(msg):
     print(msg, file=sys.stderr)
 
@@ -242,20 +244,20 @@ class kvs_node(Resource):
 
             # check if the value should be put
             # value VC is greater than
-            if VC_is_greater_than(nVC, kVC):
+            #if VC_is_greater_than(nVC, kVC):
                 # update the KVS                
             # value VC is less than
-            if VC_is_less_than(nVC, kVC):
+            #if VC_is_less_than(nVC, kVC):
                 # ignore, the new value is old
             # value VC is equal to
-            if vc_is_equal_to(nVC, kVC):
+            #if vc_is_equal_to(nVC, kVC):
                 # do nothing, it is the same value
-            else:
+            #else:
                 # clocks are concurrent but not equal
                 # compare timestamps to see who is newer
-                if nTS > kTS:
+                #if nTS > kTS:
                     # update the KVS
-                else:
+                #else:
                     # ignore, the new value is old
 
             temp = self.handle_put(key, value, nTS, nVC)
@@ -400,7 +402,7 @@ class kvs_shard_my_id(Resource):
     def get(self):
         return Response(json.dumps({
             'id' : shardID
-        })
+        }),
         status=200, mimetype=u'application/json')
 
 class kvs_shard_all_ids(Resource):
@@ -408,7 +410,7 @@ class kvs_shard_all_ids(Resource):
         return Response(json.dumps({
             'result' : 'Success',
             'shard_ids' : ",".join(shard_ids)
-        })
+        }),
         status=200, mimetype=u'application/json')
 
 class kvs_shard_members(Resource):
@@ -417,13 +419,13 @@ class kvs_shard_members(Resource):
             return Response(json.dumps({
                 'result' : 'Success',
                 'members' : shard_members
-            })
+            }),
             status=200, mimetype=u'application/json')
         else:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'No shard with id ' + input_id
-            })
+            }),
             status=404, mimetype=u'application/json')
 
 class kvs_shard_count(Resource):
@@ -432,13 +434,13 @@ class kvs_shard_count(Resource):
             return Response(json.dumps({
                 'result' : 'Success',
                 'Count' : numberOfKeys
-            })
+            }),
             status=200, mimetype=u'application/json')
         else:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'No shard with id ' + input_id
-            })
+            }),
             status=404, mimetype=u'application/json')
 
 class kvs_shard_changeShardNumber(Resource):
@@ -448,25 +450,25 @@ class kvs_shard_changeShardNumber(Resource):
           return Response(json.dumps({
               'result' : 'Error',
               'msg' : 'Must have at lease one shard'
-          })
+          }),
           status=400, mimetype=u'application/json')
-        else if True ##TODO propogate shard redistribution, return if succeeds
+        elif True: ##TODO propogate shard redistribution, return if succeeds
             return Response(json.dumps({
               'result' : 'Success',
               'shard_ids' : shard_ids
-            })
+            }),
             status=200, mimetype=u'application/json')
-        else if True: #TODO if newNumber is greater than # of nodes in the view 
+        elif True: #TODO if newNumber is greater than # of nodes in the view 
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes for ' + newNumber + ' shards'
-            })
+            }),
             status=400, mimetype=u'application/json')
         else: #TODO if there is only 1 node in any partition after redividing, abort
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
-            })
+            }),
             status=400, mimetype=u'application/json')
 
 
