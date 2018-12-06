@@ -35,11 +35,12 @@ shard_members = []
 #shard_members.append(my_ip)
 
 
-def shardNodes(shardSize, nodeList, numKeys):
+def shardNodes(shardSize, numKeys):
     #if not enough nodes to shard into specified size, default to 1
     #NOTE: this is only for initialization, not manual view/shard changes
     global shard_members
     global shard_ids
+    global shardID
     if ((len(view_list) + 1)/2) < shardSize:
         shard_members = []
         shardSize = 1
@@ -58,21 +59,20 @@ def shardNodes(shardSize, nodeList, numKeys):
             reHashKeys()
     else:
         shard = []
-        shard_members = []
+        shard_members = [[] for i in range(shardSize)]
         for i in range(0, len(view_list)):
             shard.append(i % shardSize)
         shardID = shard[view_list.index(my_ip)]
-        #TODO definitely bad logic here, all nodes are added to every list
         for i in range(0, shardSize):
             for j in range(0, len(view_list)):
                 if shard[j] == i:
-                    shard_members.append((list(view_list), view_list[j]))
+                    shard_members[i].append(view_list[j])
         for x in range(0, numShards):
             shard_ids.append(str(x))
         if numberOfKeys != 0:
             reHashKeys()
 
-shardNodes(numShards, view_list, numberOfKeys)
+shardNodes(numShards,numberOfKeys)
 #TODO integrate data migration
 def reHashKeys():
     print('this shoud do something')
@@ -418,7 +418,7 @@ class kvs_shard_all_ids(Resource):
     def get(self):
         return Response(json.dumps({
             'result' : 'Success',
-            'shard_ids' : ",".join(shard_ids)#TODO fix format
+            'shard_ids' : ",".join(shard_ids)
         }),
         status=200, mimetype=u'application/json')
 
@@ -427,7 +427,7 @@ class kvs_shard_members(Resource):
         if input_id in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
-                'members' : ",".join(str(x) for x in shard_members[int(input_id)][0])
+                'members' : ",".join(str(x) for x in shard_members[int(input_id)])
             }),
             status=200, mimetype=u'application/json')
         else:
