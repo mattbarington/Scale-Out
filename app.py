@@ -23,8 +23,6 @@ numShards = int(os.environ.get('S'))
 
 #list of all shards in the system
 shard_ids = []
-for x in range (0, numShards-1):
-  shard_ids.append(x)
 
 #number of key-value pairs this shard is responsible for 
 numberOfKeys = 0
@@ -32,40 +30,49 @@ numberOfKeys = 0
 #this node's shard
 shardID = 0
 
-#list of all this shard's members as IP addresses
+#list of all shard's members as IP addresses
 shard_members = []
+#shard_members.append(my_ip)
 
 
-
-def shardNodes(shardSize, nodeList, numKeys, shard_members):
+def shardNodes(shardSize, nodeList, numKeys):
     #if not enough nodes to shard into specified size, default to 1
     #NOTE: this is only for initialization, not manual view/shard changes
+    global shard_members
+    global shard_ids
     if ((len(view_list) + 1)/2) < shardSize:
+        shard_members = []
         shardSize = 1
         shardID = 0
-        shard_members = nodeList
+        shard_members.append(view_list)
+        shard_ids = ["0"]
     #if changing to one shard 
     elif shardSize == 1: 
+        shard_members = []
         shardSize = 1
         shardID = 0
-        shard_members = nodeList
+        shard_members.append(view_list)
+        shard_ids = ["0"]
         #check if this node needs to migrate data
         if numberOfKeys != 0:
             reHashKeys()
-
     else:
         shard = []
         shard_members = []
-        for i in range(0, len(view_list) - 1):
+        for i in range(0, len(view_list)):
             shard.append(i % shardSize)
         shardID = shard[view_list.index(my_ip)]
-        for i in range(0, len(view_list) - 1):
-            if shard[i] == shardID:
-                shard_members.append(view_list[i])
+        #TODO definitely bad logic here, all nodes are added to every list
+        for i in range(0, shardSize):
+            for j in range(0, len(view_list)):
+                if shard[j] == i:
+                    shard_members.append((list(view_list), view_list[j]))
+        for x in range(0, numShards):
+            shard_ids.append(str(x))
         if numberOfKeys != 0:
             reHashKeys()
 
-shardNodes(numShards, view_list, numberOfKeys, shard_members)
+shardNodes(numShards, view_list, numberOfKeys)
 #TODO integrate data migration
 def reHashKeys():
     print('this shoud do something')
@@ -411,16 +418,16 @@ class kvs_shard_all_ids(Resource):
     def get(self):
         return Response(json.dumps({
             'result' : 'Success',
-            'shard_ids' : ",".join(str(shard_ids))#TODO fix format
+            'shard_ids' : ",".join(shard_ids)#TODO fix format
         }),
         status=200, mimetype=u'application/json')
 
 class kvs_shard_members(Resource):
     def get(self, input_id):
-        if int(input_id) in shard_ids:
+        if input_id in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
-                'members' : ",".join(shard_members)#TODO needs to return members of the correct shard
+                'members' : ",".join(str(x) for x in shard_members[int(input_id)][0])
             }),
             status=200, mimetype=u'application/json')
         else:
@@ -432,7 +439,7 @@ class kvs_shard_members(Resource):
 
 class kvs_shard_count(Resource):
     def get(self, input_id):
-        if int(input_id) in shard_ids:
+        if input_id in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
                 'Count' : numberOfKeys
