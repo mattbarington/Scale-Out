@@ -291,7 +291,7 @@ class TestHW4(unittest.TestCase):
 
         shardView = self.getShardView(ipPort)
         for shard in shardView:
-            length = len(shard)
+            length = len(shardView[shard])
             self.assertTrue(length > 1)
 
     # number of shards should not change

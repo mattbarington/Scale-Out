@@ -35,13 +35,13 @@ shard_members = []
 #shard_members.append(my_ip)
 
 
-def shardNodes(shardSize, numKeys):
+def shardNodes(shardSize):
     #if not enough nodes to shard into specified size, default to 1
     #NOTE: this is only for initialization, not manual view/shard changes
     global shard_members
     global shard_ids
     global shardID
-    if ((len(view_list) + 1)/2) < shardSize:
+    if ((len(view_list))/2) < shardSize:
         shard_members = []
         shardSize = 1
         shardID = 0
@@ -72,8 +72,9 @@ def shardNodes(shardSize, numKeys):
         if numberOfKeys != 0:
             reHashKeys()
 
-shardNodes(numShards,numberOfKeys)
+shardNodes(numShards)
 #TODO integrate data migration
+
 def reHashKeys():
     print('this shoud do something')
     
