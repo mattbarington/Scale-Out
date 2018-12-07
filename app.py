@@ -284,8 +284,13 @@ class kvs_node(Resource):
         dprint("GET")
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
-        nVC = payload["vc"]
-        nTS = payload["timestamp"]
+        dprint("check out this payload: %s" % payload)
+        if len(payload) == 0:
+            nVC = dummy_vector_clock()
+            nTS = time.time()
+        else:
+            nVC = payload["vc"]
+            nTS = payload["timestamp"]
 
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
@@ -324,8 +329,12 @@ class kvs_node(Resource):
         dprint("DELETE")
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
-        nVC = payload["vc"]
-        nTS = payload["timestamp"]
+        if len(payload) == 0:
+            nVC = dummy_vector_clock()
+            nTS = time.time()
+        else:
+            nVC = payload["vc"]
+            nTS = payload["timestamp"]
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
                 'msg':'Key not valid',
@@ -369,11 +378,15 @@ class kvs_node(Resource):
         payload = ast.literal_eval(payload)
 
         # get the vector_clock from the payload
-        nVC = payload["vc"]
+        if len(payload) == 0:
+            nVC = dummy_vector_clock()
+            nTS = time.time()
+        else:
+            nVC = payload["vc"]
+            nTS = payload["timestamp"]
 
         # increment the vector_clock for my_ip
         increment_clock(nVC)
-        nTS = payload["timestamp"]
 
         # get key's vector_clock and timestamp
         if(key in key_value_db):
