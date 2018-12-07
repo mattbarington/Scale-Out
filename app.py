@@ -241,13 +241,17 @@ def less_than(vc1, vc2):
                 return False
     return not all_equal
 
-
-def overwrite(vc1, ts1, vc2, ts2):
-    if less_than(vc1, vc2):
-        return False
-    if less_than(vc2, vc1):
+# FUNCTION: isOlderThan
+# DESCRIPTION: compares contexts (vector,timestamp)
+#              returns True if a is older than b, false conversely
+def isOlderThan(a, b):
+    vcA, tsA = a
+    vcB, tsB = b
+    if less_than(vcA, vcB):
         return True
-    return ts1 > ts2
+    if less_than(vcA, vcB):
+        return False
+    return tsA < tsB
 
 
 class kvs_node(Resource):
@@ -278,6 +282,11 @@ class kvs_node(Resource):
 
     def get(self, key):
         dprint("GET")
+        payload = request.form.get('payload')
+        payload = ast.literal_eval(payload)
+        nVC = payload["vc"]
+        nTS = payload["timestamp"]
+
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
                 'msg': 'Key not valid',
@@ -285,28 +294,55 @@ class kvs_node(Resource):
 
         # ays to return key does not exist if not in db
         # along with payload and 404 status
-        if key not in key_value_db or key_value_db[key][KVS_DEL_POS] is True:
+        if key not in key_value_db:
             return Response(json.dumps({
                 'result': 'Error',
                 'msg': 'Key does not exist',
                 'payload': {}
                 }), status=404, mimetype=u'application/json')
-
+        elif isOlderThan((key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS]),(nVC,nTS)):
+                return Response(json.dumps({
+                    'result':'Error',
+                    'msg' : 'Payload out of date',
+                    'payload': payload
+                    }), status=404, mimetype=u'application/json')
+        elif key_value_db[key][KVS_DEL_POS] is True:
+            return Response(json.dumps({
+                'result':'Error',
+                'msg' : 'Key does not exist',
+                'payload': build_payload(key)
+                }), status=404, mimetype=u'application/json')
         # Spec says to return value of key if key
         # in database along with payload with return status of 200
         return Response(json.dumps({
-            'result': 'Success',
-            'value': key_value_db[key][KVS_VAL_POS],
-            'payload':  {},
+            'result' : 'Success',
+            'value' : key_value_db[key][KVS_VAL_POS],
+            'payload' :  build_payload(key),
         }), status=200, mimetype=u'application/json')
 
     def delete(self, key):
         dprint("DELETE")
+        payload = request.form.get('payload')
+        payload = ast.literal_eval(payload)
+        nVC = payload["vc"]
+        nTS = payload["timestamp"]
         if len(key) > 200 or len(key) < 1:
             return Response(json.dumps({
-                'msg': 'Key not valid',
-                'result': 'Error'}))
-        if key not in key_value_db or key_value_db[key][KVS_DEL_POS] is True:
+                'msg':'Key not valid',
+                'result' : 'Error'}))
+        if key not in key_value_db:
+            return Response(json.dumps({
+                'result':'Error',
+                'msg':'Key does not exist',
+                'payload': "payload"}),
+                status=404, mimetype=u'application/json')
+        elif isOlderThan((nVC,nTS),(key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS])):
+            return Response(json.dumps({
+                'result':'Error',
+                'msg' : 'Payload out of date',
+                'payload': build_payload(key)
+                }), status=404, mimetype=u'application/json')
+        elif key_value_db[key][KVS_DEL_POS] is True:
             return Response(json.dumps({
                 'result': 'Error',
                 'msg': 'Key does not exist',
@@ -316,8 +352,6 @@ class kvs_node(Resource):
         val, ts, vc, dflag = key_value_db[key]
         increment_clock(vc)
         self.handle_put(key, val, ts, vc, True)
-        # key_value_db[key] = (val, ts, vc, True)
-
         return Response(json.dumps({
             'result': 'Success',
             'msg': 'Key deleted',
@@ -327,7 +361,6 @@ class kvs_node(Resource):
 
     def put(self, key):
         dprint("PUT")
-
         # Value to put in kvs
         value = request.form.get('val')
         # Payload containing additional information:
@@ -335,18 +368,12 @@ class kvs_node(Resource):
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
 
-        # DEBUG: printing the payload delivered
-        # dprint("\nPayload is type: %s\nPayload is: %s\n" %(type(payload),payload), file=sys.stderr)
-
         # get the vector_clock from the payload
         nVC = payload["vc"]
 
         # increment the vector_clock for my_ip
         increment_clock(nVC)
-
-        # dprint(nVC)
         nTS = payload["timestamp"]
-        # dprint(nTS)
 
         # get key's vector_clock and timestamp
         if(key in key_value_db):
@@ -358,15 +385,13 @@ class kvs_node(Resource):
             kTS = nTS
 
         # test to see if value should be overwritten
-        if(overwrite(nVC, nTS, kVC, kTS)):
-            temp = self.handle_put(key, value, nTS, nVC, False)
-            return temp
+        if isOlderThan((kVC, kTS),(nVC,nTS)):
+            return self.handle_put(key, value, nTS, nVC, False)
 
 class kvs_search(Resource):
   def get(self, key):
 
     dprint("kvs_search - get")
-    # dprint("key: " + key)
     # create payload
     nPayload = build_payload(key)
 
@@ -386,7 +411,6 @@ class kvs_search(Resource):
 class kvs_view(Resource):
     def get(self):
         dprint("KVS_VIEW - GET")
-        # print("Serving to client [%s]'s view_list: %s" % (my_ip, view['list']),file=sys.stderr)
         return Response(json.dumps({
             'view': ",".join(view['list']),
         }),
@@ -452,7 +476,7 @@ class dis_kvs(Resource):
         else:
             kVC = dummy_vector_clock()
             kTS = ts
-        if overwrite(vc, ts, kVC, kTS):
+        if isOlderThan((kVC,kTS),(vc,ts)):
             key_value_db[key] = (value, ts, vc, dflag)
 
 # Disemination of views between nodes (Gossip of views)
