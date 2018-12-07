@@ -20,7 +20,6 @@ KVS_VC_POS = 2
 KVS_DEL_POS = 3
 
 key_value_db = {}
-buffered_keys = {}
 
 view_list = os.environ.get('VIEW').split(',')
 view_list.sort()

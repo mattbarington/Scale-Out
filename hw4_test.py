@@ -11,17 +11,17 @@ import io
 
 dockerBuildTag = "testing" #put the tag for your docker build here
 
-hostIp = "localhost" 
+hostIp = "localhost"
 
-needSudo = False # obviously if you need sudo, set this to True 
-#contact me imediately if setting this to True breaks things 
+needSudo = False # obviously if you need sudo, set this to True
+#contact me imediately if setting this to True breaks things
 #(I don't have a machine which needs sudo, so it has not been tested, although in theory it should be fine)
 
 port_prefix = "808"
 
 networkName = "mynetwork" # the name of the network you created
 
-networkIpPrefix = "192.168.0." # should be everything up to the last period of the subnet you specified when you 
+networkIpPrefix = "192.168.0." # should be everything up to the last period of the subnet you specified when you
 # created your network
 
 propogationTime = 3 #sets number of seconds we sleep after certain actions to let data propagate through your system
@@ -100,7 +100,7 @@ def getCount(ipPort, ID):
     return requests.get( 'http://%s/shard/count/%s'%(str(ipPort), str(ID)) )
 
 def changeShardNumber(ipPort, newNumber):
-    return requests.put( 'http://%s/shard/changeShardNumber'%str(ipPort), data={'num' : newNumber} ) 
+    return requests.put( 'http://%s/shard/changeShardNumber'%str(ipPort), data={'num' : newNumber} )
 
 ###########################################################################################
 
@@ -244,7 +244,7 @@ class TestHW4(unittest.TestCase):
         data = response.json()
 
         self.assertEqual(data['result'], expectedResult)
-        
+
         if "msg" in data and expectedMsg == None:
             self.assertEqual(data['msg'], expectedMsg)
         else:
@@ -266,8 +266,8 @@ class TestHW4(unittest.TestCase):
 ## Tests start here ##
 ##########################################################################
 
-    # check that they do things, 
-    # not that they do the right thing, 
+    # check that they do things,
+    # not that they do the right thing,
     # just that they don't return an error
     def test_a_shard_endpoints(self):
         ipPort = self.view[0]["testScriptAddress"]
@@ -307,10 +307,10 @@ class TestHW4(unittest.TestCase):
         viewSting += ",%s"%newView
         newNode = dc.spinUpDockerContainer(dockerBuildTag, hostIp, networkIpPrefix+"8", newPort, viewSting, 3)
 
-        self.confirmAddNode(ipPort=ipPort, 
-                            newAddress=newView, 
-                            expectedStatus=200, 
-                            expectedResult="Success", 
+        self.confirmAddNode(ipPort=ipPort,
+                            newAddress=newView,
+                            expectedStatus=200,
+                            expectedResult="Success",
                             expectedMsg="Successfully added %s to view"%newView)
 
         time.sleep(propogationTime)
@@ -326,10 +326,10 @@ class TestHW4(unittest.TestCase):
 
         initialShardIDs = self.checkGetAllShardIds(ipPort)
 
-        self.confirmDeleteNode(ipPort=ipPort, 
-                               removedAddress=removedNode, 
-                               expectedStatus=200, 
-                               expectedResult="Success", 
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
         time.sleep(propogationTime)
@@ -341,4 +341,4 @@ class TestHW4(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()
