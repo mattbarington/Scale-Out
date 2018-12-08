@@ -77,16 +77,17 @@ def shardNodes(shardSize):
     global shard_members
     global shard_ids
     global shardID
+    global numShards
     if ((len(view['list']))/2) < shardSize:
         shard_members = []
-        shardSize = 1
+        numShards = 1
         shardID = 0
         shard_members.append(view['list'])
         shard_ids = ["0"]
     # if changing to one shard
     elif shardSize == 1:
         shard_members = []
-        shardSize = 1
+        numShards = 1
         shardID = 0
         shard_members.append(view['list'])
         shard_ids = ["0"]
@@ -94,6 +95,7 @@ def shardNodes(shardSize):
         if numberOfKeys != 0:
             reHashKeys()
     else:
+        numShards = shardSize
         shard = []
         shard_members = [[] for i in range(shardSize)]
         for i in range(0, len(view['list'])):
@@ -517,24 +519,26 @@ class kvs_shard_changeShardNumber(Resource):
               'msg' : 'Must have at lease one shard'
           }),
           status=400, mimetype=u'application/json')
-        elif True: ##TODO propogate shard redistribution, return if succeeds
-            return Response(json.dumps({
-              'result' : 'Success',
-              'shard_ids' : shard_ids
-            }),
-            status=200, mimetype=u'application/json')
-        elif True: #TODO if newNumber is greater than # of nodes in the view
+        elif int(newNumber) <= numShards: 
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes for ' + newNumber + ' shards'
             }),
             status=400, mimetype=u'application/json')
-        else: #TODO if there is only 1 node in any partition after redividing, abort
+        elif ((len(view['list']))/2) < numShards: 
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
             }),
             status=400, mimetype=u'application/json')
+        else: 
+            #TODO broadcast resharding
+            shardNodes(int(newNumber))
+            return Response(json.dumps({
+              'result' : 'Success',
+              'shard_ids' : shard_ids
+            }),
+            status=200, mimetype=u'application/json')
 
 
 
