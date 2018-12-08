@@ -382,7 +382,7 @@ class TestHW4(unittest.TestCase):
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
         # attempt to add shard (should be rejected)
-        checkChangeShardNumber(ipPort=ipPort,
+        self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=400,
                                expectedResult="Error",
                                newShardNumber=3)
@@ -409,7 +409,7 @@ class TestHW4(unittest.TestCase):
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
         # attempt to add shard (should be accepted)
-        checkChangeShardNumber(ipPort=ipPort,
+        self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
                                newShardNumber=3)
