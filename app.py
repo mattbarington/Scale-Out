@@ -544,7 +544,7 @@ class kvs_shard_changeShardNumber(Resource):
         #        'msg' : 'Not enough nodes for ' + newNumber + ' shards'
         #    }),
         #    status=400, mimetype=u'application/json')
-        elif ((len(view['list']))/2) < newNumber:
+        elif ((len(view['list']))//2) < int(newNumber):
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'

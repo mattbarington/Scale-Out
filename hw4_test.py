@@ -266,10 +266,12 @@ class TestHW4(unittest.TestCase):
     def checkChangeShardNumber(self, ipPort, expectedStatus, expectedResult, newShardNumber):
         response = changeShardNumber(ipPort, newShardNumber)
 
-        self.assertEqual(response.status_code, expectedStatus)
         data = response.json()
+
+        self.assertEqual(response.status_code, expectedStatus)
+
         self.assertEqual(data["result"], expectedResult)
-        return data["shard_ids"].split(",")
+        return
 
 ##########################################################################
 ## Tests start here ##
@@ -364,9 +366,14 @@ class TestHW4(unittest.TestCase):
     # - Check to make shard change was accepted
     def test_x1_reshard_auto_reject_accept(self):
 
+        print("TEST X1: Reshards [auto, reject, accept]")
         ipPort = self.view[0]["testScriptAddress"]
+        print(self.view)
         initialShardIDs = self.checkGetAllShardIds(ipPort)
 
+        print("Initial Shard IDs")
+        print(initialShardIDs)
+        
         # remove a node, confirm it's removal
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -375,19 +382,24 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting 3 sec...")
+
         time.sleep(propogationTime)
 
         # check for 2 shards
+        print("Checking for auto-resharding to 2 shards")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
         # attempt to add shard (should be rejected)
+        print("Attempting to change to 3 shards (should be rejected)")
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=400,
                                expectedResult="Error",
                                newShardNumber=3)
 
         # add a node back, confirm its addition
+        print("Adding a node back")
         initialShardIDs = newShardIDs
         newPort = "%s8"%port_prefix
         newView = "%s8:8080"%(networkIpPrefix)
@@ -402,13 +414,16 @@ class TestHW4(unittest.TestCase):
                             expectedResult="Success",
                             expectedMsg="Successfully added %s to view"%newView)
 
+        print("waiting 3 sec...")
         time.sleep(propogationTime)
         
         # check to ensure the shard number hasn't changed
+        print("Ensuring the shard number is still 2")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
         # attempt to add shard (should be accepted)
+        print("Now attempting to change shard number to 3 (acceptable)")
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
