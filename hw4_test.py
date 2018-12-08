@@ -414,6 +414,98 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                newShardNumber=3)
 
+    # Test Case: x2
+    # Description: 
+    # - Start at 6 node, 3 shard
+    # - remove node
+    # - check for 2 shard
+    # - remove node
+    # - check for 2 shard
+    # - remove node
+    # - check for 1 shard
+    # - remove node
+    # - check for 1 shard
+    # - remove node
+    # - check for 1 shard
+    def test_x2_remove_nodes_down_to_one(self):
+
+        ipPort = self.view[0]["testScriptAddress"]
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+
+        # remove a node, confirm it's removal
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        # check for 2 shards (five nodes left)
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
+
+        # remove a node, confirm it's removal
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        # check for 2 shards (four nodes left)
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs))
+
+        # remove a node, confirm it's removal
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        # check for 1 shard (3 nodes left)
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
+
+        # remove a node, confirm it's removal
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        # check for 1 shard (2 nodes left)
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs))
+
+        # remove a node, confirm it's removal
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        # check for 1 shard (1 node left)
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs))
+
 
     def test_a_add_key_value_one_node(self):
 
