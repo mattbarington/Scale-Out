@@ -39,11 +39,10 @@ shard_members = []
 GOSSIP_DELAY = 0.3
 
 def check_shard_size(shard_members):
-    dprint("shard_members: %s" % shard_members)
-    for shard in shard_members:
-        if len(shard) < 2:
-            dprint("shard %s has less than 2 nodes" % shard)
-            shardNodes(numShards -  1)
+    if len(shard_members) != 1:
+        for shard in shard_members:
+            if len(shard) < 2:
+                shardNodes(numShards -  1)
 
 
 # FUNCTION: dprint
@@ -97,6 +96,7 @@ def shardNodes(shardSize):
         numShards = 1
         shardID = 0
         shard_members.append(view['list'])
+        view['shard_members'] = shard_members
         shard_ids = ["0"]
         # check if this node needs to migrate data
         if numberOfKeys != 0:
@@ -115,6 +115,8 @@ def shardNodes(shardSize):
             for j in range(0, len(view['list'])):
                 if shard[j] == i:
                     shard_members[i].append(view['list'][j])
+
+        view['shard_members'] = shard_members
 
         shard_ids = []
         for x in range(0, numShards):
@@ -451,10 +453,7 @@ class kvs_view(Resource):
                     shard.remove(ip_port)
 
             # check to see if resharding is needed
-            dprint("Checking shard sizes after node removal")
             check_shard_size(view['shard_members'])
-            dprint("AFTER check_shard_size")
-            dprint(view['shard_members'])
 
             broadcastView(view)
             # broadcastViewDelete(ip_port)
