@@ -24,6 +24,7 @@ key_value_db = {}
 view_list = os.environ.get('VIEW').split(',')
 view_list.sort()
 view = {'list': view_list, 'updated': time.time()}
+view['list'].sort()
 my_ip = os.environ.get('IP_PORT')
 
 # initial number of shards
@@ -78,6 +79,8 @@ def shardNodes(shardSize):
     global shard_ids
     global shardID
     global numShards
+    global view
+    view['list'].sort()
     if ((len(view['list']))/2) < shardSize:
         shard_members = []
         numShards = 1
