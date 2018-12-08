@@ -168,45 +168,6 @@ def storeKeyValue(ipPort, key, value, payload):
     return requests.put('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'val': value, 'payload': json.dumps(payload)})
 
 
-def deleteView(ipPort, view):
-    del local_vc.clock[ipPort]
-    return requests.delete('http://%s/view' % (str(ipPort)), data={'ip_port': view})
-
-
-def addView(ipPort, view):
-    local_vc.clock[ipPort] = 0
-    return requests.put('http://%s/view' % (str(ipPort)), data={'ip_port': view})
-    # return requests.put( 'http://%s/view'%str(ipPort), data={'ip_port':newAddress} )
-
-
-def deleteB(ipPort, key, payload):
-    return requests.delete('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'payload': json.dumps(payload)})
-
-
-def broadcast(key, value, payload):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            storeKeyValue(ipPort, key, value, payload)
-
-
-def broadcastViewDelete(view):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            deleteView(ipPort, view)
-
-
-def broadcastViewAdd(view):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            addView(ipPort, view)
-
-
-def broadcastDelete(key, payload):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            deleteB(ipPort, key, payload)
-
-
 def sendKey(ipPort, key, value, payload):
     dprint("SENDKEY: sending {%s: %s} to %s" % (key, value, ipPort))
     requests.put('http://%s/gossip/%s' % (str(ipPort), key),
