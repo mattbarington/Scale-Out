@@ -177,6 +177,20 @@ def max(a, b):
         return a
     return b
 
+def nodeKeyHome(key):
+    return nodeWithID(hash(key) % numShards)
+
+def nodeWithID(k_hash):
+    home_IPs = view['shard_members'][k_hash]
+    return home_IPs[0]
+
+def shuffleKeysAround():
+    for key,v,ts,vc,d in key_value_db:
+        key_home = hash(key) % numShards
+        if key_home != shardID:
+            sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
+            del key_value_db[key]
+
 
 def storeKeyValue(ipPort, key, value, payload):
     return requests.put('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'val': value, 'payload': json.dumps(payload)})
@@ -187,22 +201,35 @@ def sendKey(ipPort, key, value, payload):
     requests.put('http://%s/gossip/%s' % (str(ipPort), key),
                  data={'val': value, 'payload': json.dumps(payload)})
 
-
 def sendView(ipPort, view):
     requests.put('http://%s/gossipView' %
                  (str(ipPort)), data={'view': json.dumps(view)})
-
 
 def broadcastView(view):
     for ipPort in view['list']:
         if ipPort != my_ip:
             sendView(ipPort, view)
 
-
 def broadcastStore(key, value, ts, vc, dflag):
     for ipPort in view['list']:
         if ipPort != my_ip:
             sendKey(ipPort, key, value, (ts, vc, dflag))
+
+def forwardPut(key, value, payload):
+    ipPort = nodeKeyHome(key)
+    return requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': json.dumps(payload)})
+
+def forwardGet(key, payload):
+    ipPort = nodeKeyHome(key)
+    return requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+
+def forwardDelete(key, payload):
+    ipPort = nodeKeyHome(key)
+    return requests.deleted( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+
+def forwardSearch(key, payload):
+    ipPort = nodeKeyHome(key)
+    return requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
 
 
 def less_than(vc1, vc2):
