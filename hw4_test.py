@@ -263,6 +263,14 @@ class TestHW4(unittest.TestCase):
         for member in shard:
             self.assertEqual(self.checkGetMyShardId(member), ID)
 
+    def checkChangeShardNumber(self, ipPort, newShardNumber, expectedStatus, expectedResult)
+        response = changeShardNumber(ipPort, newShardNumber)
+
+        self.assertEqual(response.status_code, expectedStatus)
+        data = response.json()
+        self.assertEqual(data["result"], expectedResult)
+        return data["shard_ids"].split(",")
+
 ##########################################################################
 ## Tests start here ##
 ##########################################################################
@@ -354,28 +362,32 @@ class TestHW4(unittest.TestCase):
     # - Check for still at 2 shards
     # - Reshard to 3 shards
     # - Check to make shard change was accepted
-#    def test_x1_reshard_auto_reject_accept
-#
-#        initialShardIDs = self.checkGetAllShardIds(ipPort)
-#        ipPort = self.view[0]["testScriptAddress"]
-#
-#        # remove a node, confirm it's removal
-#        removedNode = self.view.pop()["networkIpPortAddress"]
-#        self.confirmDeleteNode(ipPort=ipPort,
-#                               removedAddress=removedNode,
-#                               expectedStatus=200,
-#                               expectedResult="Success",
-#                               expectedMsg="Successfully removed %s from view"%removedNode)
+    def test_x1_reshard_auto_reject_accept
 
-#        time.sleep(propogationTime)
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        ipPort = self.view[0]["testScriptAddress"]
 
-#        # check for 2 shards
-#        newShardIDs = self.checkGetAllShardIds(ipPort)
-#        self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
+        # remove a node, confirm it's removal
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               expectedMsg="Successfully removed %s from view"%removedNode)
 
-#        # attempt to add shard (should be rejected)
+        time.sleep(propogationTime)
 
+        # check for 2 shards
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
+        # attempt to add shard (should be rejected)
+        checkChangeShardNumber(ipPort=ipPort,
+                               expectedStatus=400,
+                               expectedResult="Error",
+                               newShardNumber=3)
+
+        # NOT finished yet
 
 
     def test_a_add_key_value_one_node(self):
