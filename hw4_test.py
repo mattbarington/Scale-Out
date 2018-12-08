@@ -507,7 +507,9 @@ class TestHW4(unittest.TestCase):
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
 
-    def test_a_add_key_value_one_node(self):
+    def test_z_add_key_value_one_node(self):
+
+        print("TEST Z: ADD KEY VALUE ONE NODE")
 
         ipPort = self.view[0]["testScriptAddress"]
         key = "addNewKey"
