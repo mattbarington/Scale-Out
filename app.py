@@ -77,18 +77,18 @@ def shardNodes(shardSize):
     global shard_members
     global shard_ids
     global shardID
-    if ((len(view_list))/2) < shardSize:
+    if ((len(view['list']))/2) < shardSize:
         shard_members = []
         shardSize = 1
         shardID = 0
-        shard_members.append(view_list)
+        shard_members.append(view['list'])
         shard_ids = ["0"]
     # if changing to one shard
     elif shardSize == 1:
         shard_members = []
         shardSize = 1
         shardID = 0
-        shard_members.append(view_list)
+        shard_members.append(view['list'])
         shard_ids = ["0"]
         # check if this node needs to migrate data
         if numberOfKeys != 0:
@@ -96,13 +96,13 @@ def shardNodes(shardSize):
     else:
         shard = []
         shard_members = [[] for i in range(shardSize)]
-        for i in range(0, len(view_list)):
+        for i in range(0, len(view['list'])):
             shard.append(i % shardSize)
-        shardID = shard[view_list.index(my_ip)]
+        shardID = shard[view['list'].index(my_ip)]
         for i in range(0, shardSize):
             for j in range(0, len(view_list)):
                 if shard[j] == i:
-                    shard_members[i].append(view_list[j])
+                    shard_members[i].append(view['list'][j])
         for x in range(0, numShards):
             shard_ids.append(str(x))
         if numberOfKeys != 0:
@@ -373,15 +373,6 @@ class kvs_node(Resource):
         value = request.form.get('val')
         # Payload containing additional information:
         # timestamp, key vector clock
-        dprint('Incoming requrest: %s' % request)
-        dprint("here's the data lol %s" % request.data)
-        dprint("request args haha %s" % request.args)
-        dprint("request form to dicktionary: %s" % request.form.to_dict())
-        dprint("query string: %s" % request.query_string)
-        dprint("requie . jsan %s" % request.json)
-        dprint("getjsin %s" % request.get_json())
-        # dprint("request.dump bitch: %s" % json.dumps(request))
-        dprint("request.args dump bitch: %s" % json.dumps(request.args))
 
         payload = ast.literal_eval(request.form.get('payload'))
 
@@ -468,7 +459,6 @@ class kvs_view(Resource):
             }),
             status=404, mimetype=u'application/json')
         else:
-            # TODO: Actually add the node to the view and broadcast view change
             # I will attempt to implement the view change.
             view_clock = time.time()
             view['list'].append(ip_port)
