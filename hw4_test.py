@@ -444,9 +444,14 @@ class TestHW4(unittest.TestCase):
     # - check for 1 shard
     def test_x2_remove_nodes_down_to_one(self):
 
+        print("TEST X2: REMOVE NODES DOWN TO ONE")
+
         ipPort = self.view[0]["testScriptAddress"]
         initialShardIDs = self.checkGetAllShardIds(ipPort)
 
+        print(self.view[0]["containerID"])
+
+        print("Removing a node")
         # remove a node, confirm it's removal
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -455,13 +460,16 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
         # check for 2 shards (five nodes left)
+        print("Ensure auto reshard to 2 shards (5 nodes)")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
         # remove a node, confirm it's removal
+        print("Removing a node")
         initialShardIDs = self.checkGetAllShardIds(ipPort)
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -470,13 +478,16 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
         # check for 2 shards (four nodes left)
+        print("Checking still at 2 shards (4 nodes)")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
         # remove a node, confirm it's removal
+        print("Removing another node")
         initialShardIDs = self.checkGetAllShardIds(ipPort)
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -485,13 +496,16 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
         # check for 1 shard (3 nodes left)
+        print("Ensure auto reshard to 1 shard (3 nodes)")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
         # remove a node, confirm it's removal
+        print("remove another node")
         initialShardIDs = self.checkGetAllShardIds(ipPort)
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -500,13 +514,16 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
         # check for 1 shard (2 nodes left)
+        print("ensure still 1 shard (2 nodes)")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
         # remove a node, confirm it's removal
+        print("remove a node")
         initialShardIDs = self.checkGetAllShardIds(ipPort)
         removedNode = self.view.pop()["networkIpPortAddress"]
         self.confirmDeleteNode(ipPort=ipPort,
@@ -515,9 +532,11 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Success",
                                expectedMsg="Successfully removed %s from view"%removedNode)
 
+        print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
         # check for 1 shard (1 node left)
+        print("ensure still 1 shard (1 node)")
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
