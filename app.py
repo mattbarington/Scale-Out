@@ -21,9 +21,7 @@ KVS_DEL_POS = 3
 
 key_value_db = {}
 
-view_list = os.environ.get('VIEW').split(',')
-view_list.sort()
-view = {'list': view_list, 'updated': time.time()}
+view = {'list': os.environ.get('VIEW').split(','), 'updated': time.time()}
 view['list'].sort()
 my_ip = os.environ.get('IP_PORT')
 
@@ -40,11 +38,15 @@ shard_members = []
 
 GOSSIP_DELAY = 0.3
 
+def check_shard_size(shard_members):
+    for shard in shard_members:
+        if len(shard) < 2:
+            shardNodes(numShards -  1)
+
+
 # FUNCTION: dprint
 # DESCRIPTION: print() for stderr so that it will actually work
 # for Docker debugging
-
-
 def dprint(msg):
     print(msg, file=sys.stderr)
 
@@ -101,20 +103,27 @@ def shardNodes(shardSize):
         numShards = shardSize
         shard = []
         shard_members = [[] for i in range(shardSize)]
+
         for i in range(0, len(view['list'])):
             shard.append(i % shardSize)
+
         shardID = shard[view['list'].index(my_ip)]
+
         for i in range(0, shardSize):
-            for j in range(0, len(view_list)):
+            for j in range(0, len(view['list'])):
                 if shard[j] == i:
                     shard_members[i].append(view['list'][j])
+
+        shard_ids = []
         for x in range(0, numShards):
             shard_ids.append(str(x))
+
         if numberOfKeys != 0:
             reHashKeys()
 
 
 shardNodes(numShards)
+view['shard_members'] = shard_members
 # TODO integrate data migration
 
 # FUNCTION: build_payload
@@ -407,6 +416,13 @@ class kvs_view(Resource):
         else:
             view['list'].remove(ip_port)
             view['updated'] = time.time()
+
+            for shard in view['shard_members']:
+                if ip_port in shard:
+                    shard.remove(ip_port)
+
+            check_shard_size(view['shard_members'])
+
             broadcastView(view)
             # broadcastViewDelete(ip_port)
             return Response(json.dumps({
