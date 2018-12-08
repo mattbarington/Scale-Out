@@ -263,7 +263,7 @@ class TestHW4(unittest.TestCase):
         for member in shard:
             self.assertEqual(self.checkGetMyShardId(member), ID)
 
-    def checkChangeShardNumber(self, ipPort, newShardNumber, expectedStatus, expectedResult)
+    def checkChangeShardNumber(self, ipPort, expectedStatus, expectedResult, newShardNumber):
         response = changeShardNumber(ipPort, newShardNumber)
 
         self.assertEqual(response.status_code, expectedStatus)
@@ -362,10 +362,10 @@ class TestHW4(unittest.TestCase):
     # - Check for still at 2 shards
     # - Reshard to 3 shards
     # - Check to make shard change was accepted
-    def test_x1_reshard_auto_reject_accept
+    def test_x1_reshard_auto_reject_accept(self):
 
-        initialShardIDs = self.checkGetAllShardIds(ipPort)
         ipPort = self.view[0]["testScriptAddress"]
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
 
         # remove a node, confirm it's removal
         removedNode = self.view.pop()["networkIpPortAddress"]
@@ -387,7 +387,32 @@ class TestHW4(unittest.TestCase):
                                expectedResult="Error",
                                newShardNumber=3)
 
-        # NOT finished yet
+        # add a node back, confirm its addition
+        initialShardIDs = newShardIDs
+        newPort = "%s8"%port_prefix
+        newView = "%s8:8080"%(networkIpPrefix)
+
+        viewSting = getViewString(self.view)
+        viewSting += ",%s"%newView
+        newNode = dc.spinUpDockerContainer(dockerBuildTag, hostIp, networkIpPrefix+"8", newPort, viewSting, 3)
+
+        self.confirmAddNode(ipPort=ipPort,
+                            newAddress=newView,
+                            expectedStatus=200,
+                            expectedResult="Success",
+                            expectedMsg="Successfully added %s to view"%newView)
+
+        time.sleep(propogationTime)
+        
+        # check to ensure the shard number hasn't changed
+        newShardIDs = self.checkGetAllShardIds(ipPort)
+        self.assertEqual(len(newShardIDs), len(initialShardIDs))
+
+        # attempt to add shard (should be accepted)
+        checkChangeShardNumber(ipPort=ipPort,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               newShardNumber=3)
 
 
     def test_a_add_key_value_one_node(self):
