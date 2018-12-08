@@ -519,19 +519,19 @@ class kvs_shard_changeShardNumber(Resource):
               'msg' : 'Must have at lease one shard'
           }),
           status=400, mimetype=u'application/json')
-        elif int(newNumber) <= numShards: 
+        elif int(newNumber) <= numShards:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes for ' + newNumber + ' shards'
             }),
             status=400, mimetype=u'application/json')
-        elif ((len(view['list']))/2) < numShards: 
+        elif ((len(view['list']))/2) < numShards:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
             }),
             status=400, mimetype=u'application/json')
-        else: 
+        else:
             #TODO broadcast resharding
             shardNodes(int(newNumber))
             return Response(json.dumps({
