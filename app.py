@@ -173,45 +173,6 @@ def storeKeyValue(ipPort, key, value, payload):
     return requests.put('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'val': value, 'payload': json.dumps(payload)})
 
 
-def deleteView(ipPort, view):
-    del local_vc.clock[ipPort]
-    return requests.delete('http://%s/view' % (str(ipPort)), data={'ip_port': view})
-
-
-def addView(ipPort, view):
-    local_vc.clock[ipPort] = 0
-    return requests.put('http://%s/view' % (str(ipPort)), data={'ip_port': view})
-    # return requests.put( 'http://%s/view'%str(ipPort), data={'ip_port':newAddress} )
-
-
-def deleteB(ipPort, key, payload):
-    return requests.delete('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'payload': json.dumps(payload)})
-
-
-def broadcast(key, value, payload):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            storeKeyValue(ipPort, key, value, payload)
-
-
-def broadcastViewDelete(view):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            deleteView(ipPort, view)
-
-
-def broadcastViewAdd(view):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            addView(ipPort, view)
-
-
-def broadcastDelete(key, payload):
-    for ipPort in view_list:
-        if ipPort != my_ip:
-            deleteB(ipPort, key, payload)
-
-
 def sendKey(ipPort, key, value, payload):
     dprint("SENDKEY: sending {%s: %s} to %s" % (key, value, ipPort))
     requests.put('http://%s/gossip/%s' % (str(ipPort), key),
@@ -561,19 +522,19 @@ class kvs_shard_changeShardNumber(Resource):
               'msg' : 'Must have at lease one shard'
           }),
           status=400, mimetype=u'application/json')
-        elif int(newNumber) <= numShards: 
+        elif int(newNumber) <= numShards:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes for ' + newNumber + ' shards'
             }),
             status=400, mimetype=u'application/json')
-        elif ((len(view['list']))/2) < numShards: 
+        elif ((len(view['list']))/2) < numShards:
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
             }),
             status=400, mimetype=u'application/json')
-        else: 
+        else:
             #TODO broadcast resharding
             shardNodes(int(newNumber))
             return Response(json.dumps({
