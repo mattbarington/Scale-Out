@@ -271,6 +271,7 @@ class TestHW4(unittest.TestCase):
     # not that they do the right thing,
     # just that they don't return an error
     def test_a_shard_endpoints(self):
+        print("TEST A: SHARD ENDPOINTS")
         ipPort = self.view[0]["testScriptAddress"]
 
         ID = self.checkGetMyShardId(ipPort)
@@ -280,6 +281,7 @@ class TestHW4(unittest.TestCase):
 
     # check everyone agrees about who is where
     def test_b_shard_consistent_view(self):
+        print("TEST B: SHARD CONSISTENT VIEW")
         ipPort = self.view[0]["testScriptAddress"]
 
         shardView = self.getShardView(ipPort)
@@ -288,6 +290,7 @@ class TestHW4(unittest.TestCase):
 
     # no node is alone in a shard
     def test_c_shard_no_lonely_nodes(self):
+        print("TEST C: NO LONELY NODES")
         ipPort = self.view[0]["testScriptAddress"]
 
         shardView = self.getShardView(ipPort)
@@ -297,6 +300,7 @@ class TestHW4(unittest.TestCase):
 
     # number of shards should not change
     def test_d_shard_add_node(self):
+        print("TEST D: SHARD ADD NODE")
         ipPort = self.view[0]["testScriptAddress"]
 
         initialShardIDs = self.checkGetAllShardIds(ipPort)
@@ -321,6 +325,7 @@ class TestHW4(unittest.TestCase):
 
     # removing a node decrease number of shards
     def test_e_shard_remove_node(self):
+        print("TEST E: SHARD REMOVE NODE")
         ipPort = self.view[0]["testScriptAddress"]
         removedNode = self.view.pop()["networkIpPortAddress"]
 
@@ -337,6 +342,41 @@ class TestHW4(unittest.TestCase):
         newShardIDs = self.checkGetAllShardIds(ipPort)
 
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
+
+    # Test Case: x1
+    # Description: 
+    # - Starts at 6 node, 3 shard.
+    # - Removes node
+    # - Check for sucessful resharding (2 shard)
+    # - Reshard to 3 shards
+    # - Check to make sure shard change was rejected
+    # - Add node
+    # - Check for still at 2 shards
+    # - Reshard to 3 shards
+    # - Check to make shard change was accepted
+#    def test_x1_reshard_auto_reject_accept
+#
+#        initialShardIDs = self.checkGetAllShardIds(ipPort)
+#        ipPort = self.view[0]["testScriptAddress"]
+#
+#        # remove a node, confirm it's removal
+#        removedNode = self.view.pop()["networkIpPortAddress"]
+#        self.confirmDeleteNode(ipPort=ipPort,
+#                               removedAddress=removedNode,
+#                               expectedStatus=200,
+#                               expectedResult="Success",
+#                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+#        time.sleep(propogationTime)
+
+#        # check for 2 shards
+#        newShardIDs = self.checkGetAllShardIds(ipPort)
+#        self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
+
+#        # attempt to add shard (should be rejected)
+
+
+
 
     def test_a_add_key_value_one_node(self):
 
