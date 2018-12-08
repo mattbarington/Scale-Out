@@ -60,6 +60,7 @@ def viewMatch(collectedView, expectedView):
     #KVS Functions
 def storeKeyValue(ipPort, key, value, payload):
     #print('PUT: http://%s/keyValue-store/%s'%(str(ipPort), key))
+    print("Sending out payload: %s"%payload)
     return requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': payload})
 
 def checkKey(ipPort, key, payload):
@@ -318,7 +319,6 @@ class TestHW4(unittest.TestCase):
 
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
-
     # removing a node decrease number of shards
     def test_e_shard_remove_node(self):
         ipPort = self.view[0]["testScriptAddress"]
@@ -338,6 +338,44 @@ class TestHW4(unittest.TestCase):
 
         self.assertEqual(len(newShardIDs), len(initialShardIDs)-1)
 
+    def test_a_add_key_value_one_node(self):
+
+        ipPort = self.view[0]["testScriptAddress"]
+        key = "addNewKey"
+
+        payload = self.getPayload(ipPort, key)
+
+        payload = self.confirmAddKey(ipPort=ipPort,
+                           key=key,
+                           value="a simple value",
+                           expectedStatus=200,
+                           expectedMsg="Added successfully",
+                           expectedReplaced=False,
+                           payload= payload)
+
+        value = "aNewValue"
+
+        payload = self.confirmAddKey(ipPort=ipPort,
+                           key=key,
+                           value=value,
+                           expectedStatus=201,
+                           expectedMsg="Updated successfully",
+                           expectedReplaced=True,
+                           payload=payload)
+
+        payload = self.confirmCheckKey(ipPort=ipPort,
+                            key=key,
+                            expectedStatus=200,
+                            expectedResult="Success",
+                            expectedIsExists=True,
+                           payload=payload)
+
+        payload = self.confirmGetKey(ipPort=ipPort,
+                           key=key,
+                           expectedStatus=200,
+                           expectedResult="Success",
+                           expectedValue=value,
+                           payload=payload)
 
 
 if __name__ == '__main__':

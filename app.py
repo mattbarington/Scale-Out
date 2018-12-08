@@ -268,7 +268,7 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
-                'payload': nPayload,
+                'payload': json.dumps(nPayload),
             }), status=200, mimetype=u'application/json')
         else:
             key_value_db[key] = (data, ts, vc, dflag)
@@ -276,7 +276,7 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',
-                'payload': nPayload,
+                'payload': json.dumps(nPayload),
             }), status=201, mimetype=u'application/json')
 
     def get(self, key):
@@ -302,26 +302,26 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'result': 'Error',
                 'msg': 'Key does not exist',
-                'payload': {}
+                'payload': json.dumps({})
                 }), status=404, mimetype=u'application/json')
         elif isOlderThan((key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS]),(nVC,nTS)):
                 return Response(json.dumps({
                     'result':'Error',
                     'msg' : 'Payload out of date',
-                    'payload': payload
+                    'payload': json.dumps(payload)
                     }), status=404, mimetype=u'application/json')
         elif key_value_db[key][KVS_DEL_POS] is True:
             return Response(json.dumps({
                 'result':'Error',
                 'msg' : 'Key does not exist',
-                'payload': build_payload(key)
+                'payload': json.dumps(build_payload(key))
                 }), status=404, mimetype=u'application/json')
         # Spec says to return value of key if key
         # in database along with payload with return status of 200
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][KVS_VAL_POS],
-            'payload' :  build_payload(key),
+            'payload' :  json.dumps(build_payload(key)),
         }), status=200, mimetype=u'application/json')
 
     def delete(self, key):
@@ -342,19 +342,19 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'result':'Error',
                 'msg':'Key does not exist',
-                'payload': "payload"}),
+                'payload': json.dumps(payload)}),
                 status=404, mimetype=u'application/json')
         elif isOlderThan((nVC,nTS),(key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS])):
             return Response(json.dumps({
                 'result':'Error',
                 'msg' : 'Payload out of date',
-                'payload': build_payload(key)
+                'payload': json.dumps(build_payload(key))
                 }), status=404, mimetype=u'application/json')
         elif key_value_db[key][KVS_DEL_POS] is True:
             return Response(json.dumps({
                 'result': 'Error',
                 'msg': 'Key does not exist',
-                'payload': "payload"}),
+                'payload': json.dumps(payload)}),
                 status=404, mimetype=u'application/json')
         # del key_value_db[key]
         val, ts, vc, dflag = key_value_db[key]
@@ -363,7 +363,7 @@ class kvs_node(Resource):
         return Response(json.dumps({
             'result': 'Success',
             'msg': 'Key deleted',
-            'payload':  "payload",
+            'payload': json.dumps(build_payload(key)),
             }),
             status=200, mimetype=u'application/json')
 
@@ -373,8 +373,17 @@ class kvs_node(Resource):
         value = request.form.get('val')
         # Payload containing additional information:
         # timestamp, key vector clock
-        payload = request.form.get('payload')
-        payload = ast.literal_eval(payload)
+        dprint('Incoming requrest: %s' % request)
+        dprint("here's the data lol %s" % request.data)
+        dprint("request args haha %s" % request.args)
+        dprint("request form to dicktionary: %s" % request.form.to_dict())
+        dprint("query string: %s" % request.query_string)
+        dprint("requie . jsan %s" % request.json)
+        dprint("getjsin %s" % request.get_json())
+        # dprint("request.dump bitch: %s" % json.dumps(request))
+        dprint("request.args dump bitch: %s" % json.dumps(request.args))
+
+        payload = ast.literal_eval(request.form.get('payload'))
 
         # get the vector_clock from the payload
         if len(payload) == 0:
@@ -411,13 +420,13 @@ class kvs_search(Resource):
         return Response(json.dumps({
             'isExists': False,
             'result':'Success',
-            'payload' :  nPayload}),
+            'payload' :  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
     else:
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
-            'payload':  nPayload}),
+            'payload':  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
 
 class kvs_view(Resource):
@@ -563,7 +572,7 @@ class kvs_shard_changeShardNumber(Resource):
               'shard_ids' : shard_ids
             }),
             status=200, mimetype=u'application/json')
-        elif True: #TODO if newNumber is greater than # of nodes in the view 
+        elif True: #TODO if newNumber is greater than # of nodes in the view
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes for ' + newNumber + ' shards'
