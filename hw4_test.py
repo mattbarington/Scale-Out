@@ -712,18 +712,18 @@ class TestHW4(unittest.TestCase):
     # changing shard size from 1 to 2 should have 3 members in each shard
     def test_i_change_shard_size_from_one_to_two(self):
         print("TEST I increase shard size from 1 to 2")
-        self.test_h_change_shard_size_to_one()
+        #self.test_h_change_shard_size_to_one()
 
         ipPortOne = self.view[0]["testScriptAddress"]
         ipPortTwo = self.view[1]["testScriptAddress"]
 
-        members = self.checkGetMembers(ipPortOne, 0)
-        membersTwo = self.checkGetMembers(ipPortTwo, 0)
+        #members = self.checkGetMembers(ipPortOne, 0)
+       # membersTwo = self.checkGetMembers(ipPortTwo, 0)
 
         self.checkChangeShardNumber(ipPortOne, 2, 200, "Success", "0,1")
 
         membersOne = self.checkGetMembers(ipPortOne, 0)
-        membersTwo = self.checkGetMembers(ipPortTwo, 0)
+        membersTwo = self.checkGetMembers(ipPortOne, 1)
 
         self.assertEqual(3, len(membersOne))
         self.assertEqual(3, len(membersTwo))
@@ -733,11 +733,13 @@ class TestHW4(unittest.TestCase):
     # consistent with new shard id
     def test_j_key_redistributed(self):
         print("TEST J key redistribution")
+        print(self.view)
         ipPort = self.view[0]["testScriptAddress"]
         removedNode = self.view.pop()["networkIpPortAddress"]
         targetNode = self.view[-1]["networkIpPortAddress"]
 
-        self.confirmAddKey(targetNode, 'key1', 'value1', 201, "Added successfully", False, {})
+        self.confirmAddKey(targetNode, 'key1', 'value1', 200, "Added successfully", False, {})
+>>>>>>> 2e0b921df45385107d798bcf2ca5a7374958c37d
 
         self.confirmDeleteNode(ipPort=ipPort,
                                removedAddress=removedNode,

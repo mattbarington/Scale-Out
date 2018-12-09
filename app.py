@@ -365,7 +365,7 @@ class kvs_node(Resource):
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][KVS_VAL_POS],
-            'owner' : str(hash(key) % numShards),
+            'owner' : str(myhash(key) % numShards),
             'payload' :  json.dumps(build_payload(key)),
         }), status=200, mimetype=u'application/json')
 
@@ -479,7 +479,7 @@ class kvs_search(Resource):
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
-            'owner' : str(hash(key) % numShards),
+            'owner' : str(myhash(key) % numShards),
             'payload':  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
 
