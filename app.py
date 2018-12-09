@@ -248,14 +248,18 @@ def forwardSearch(key, payload):
     return r
 
 def keyIsHome(key):
-    dprint("is myhash(%s) [%s] == %s"%(key,myhash(key) % numShards, shardID))
-    if myhash(key) % numShards == shardID:
+    dprint("is myhash(%s) [%s] == %s"%(key,myhash(key) % len(view['shard_members']), shardID))
+    dprint("key hash: %s" % myhash(key))
+    dprint("my_chard_id %s" % shardID)
+    dprint("my numshards: %s" % numShards)
+    dprint("chard_members size: %s" % len(view['shard_members']))
+    if myhash(key) % len(view['shard_members']) == shardID:
         dprint("True")
         return True
     else:
         dprint("False")
         return False
-    return myhash(key) % numShards == shardID
+    return myhash(key) % len(view['shard_members']) == shardID
 
 def get_shard_ID():
     for shard in range(0, len(shard_members)):
@@ -321,7 +325,7 @@ class kvs_node(Resource):
 
         while (type(payload) is type('str')):
             payload = json.loads(payload)
-        print("payload of type %s: %s" %(type(payload),payload))
+        print("in get payload of type %s: %s" %(type(payload),payload))
 
         if not keyIsHome(key):
             r = forwardGet(key, payload)
@@ -435,7 +439,7 @@ class kvs_node(Resource):
         # get the vector_clock from the payload
         while (type(payload) is type('str')):
             payload = json.loads(payload)
-        print("payload of type %s: %s" %(type(payload),payload))
+        print("in put payload of type %s: %s" %(type(payload),payload))
         if len(payload) == 0:
             nVC = dummy_vector_clock()
             nTS = time.time()
