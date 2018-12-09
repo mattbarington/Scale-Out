@@ -1,4 +1,4 @@
-Parker: Docker container issues + bug fixes + increment everywhere
+Parker: Fixed sharding logic, view delete resharding 
 Matt: Implement vector clock stucture + basic broadcast + some view change propogation
 Joey: Sharding logic/functions and error checking
 Ryan: abstract of sharding logic, vector clocks, general development, test cases
