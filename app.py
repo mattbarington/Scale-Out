@@ -72,6 +72,7 @@ def numberOfKeys():
 def gossip_kvs():
     while True:
         time.sleep(GOSSIP_DELAY)
+        dprint("in gossip: shardID: %s" % shardID)
         peers = list(set(view['shard_members'][shardID]) - {my_ip})
         if len(peers) > 0:
             random_peer = peers[random.randint(0, len(peers) - 1)]
@@ -102,10 +103,6 @@ def shuffleKeysAround():
             sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
             del key_value_db[key]
 
-
-def reHashKeys():
-    print('this shoud do something')
-
 def shardNodes(shardSize):
     # if not enough nodes to shard into specified size, default to 1
     # NOTE: this is only for initialization, not manual view/shard changes
@@ -131,7 +128,7 @@ def shardNodes(shardSize):
         shard_ids = ["0"]
         # check if this node needs to migrate data
         if numberOfKeys() != 0:
-            reHashKeys()
+            shuffleKeysAround()
     else:
         numShards = shardSize
         shard = []
@@ -141,7 +138,7 @@ def shardNodes(shardSize):
             shard.append(i % shardSize)
 
         shardID = shard[view['list'].index(my_ip)]
-
+        dprint("shardID adter this thing: %s" % shardID)
         for i in range(0, shardSize):
             for j in range(0, len(view['list'])):
                 if shard[j] == i:
@@ -261,8 +258,8 @@ def keyIsHome(key):
     return myhash(key) % numShards == shardID
 
 def get_shard_ID():
-    for shard in shard_members:
-        for ip in shard:
+    for shard in range(0, len(shard_members)):
+        for ip in shard_members[shard]:
             if ip == my_ip:
                 return shard
     return ""
@@ -506,6 +503,11 @@ class kvs_view(Resource):
             status=404, mimetype=u'application/json')
         else:
             view['list'].remove(ip_port)
+            for shard in view['shard_members']:
+                if ip_port in shard:
+                    shard.remove(ip_port)
+            if ip_port in shard_members:
+                shard_members.remove(ip_port)
             view['updated'] = time.time()
 
             for shard in view['shard_members']:
@@ -514,7 +516,7 @@ class kvs_view(Resource):
 
             # check to see if resharding is needed
             check_shard_size(view['shard_members'])
-
+            dprint("view, just before broadcating in delete: %s"%view)
             broadcastView(view)
             # broadcastViewDelete(ip_port)
             return Response(json.dumps({
@@ -577,14 +579,15 @@ class dis_view(Resource):
             # dprint('this is my view now: %s' % view)
 
             # reshuffle keys if need be
+            global shardID
             newShard = get_shard_ID()
             if(newShard != shardID):
                 dprint("Shard number changed by gossip")
                 dprint("Old Shard number: %s" % shardID)
-                shardNodes()
+                shardID = newShard
                 dprint("New Shard number: %s" % shardID)
                 dprint("calling reshuffle for data")
-                # shuffleKeysAround()
+                shuffleKeysAround()
 
 
 class kvs_shard_my_id(Resource):
