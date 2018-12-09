@@ -225,17 +225,17 @@ def forwardPut(key, value, payload):
 def forwardGet(key, payload):
     ipPort = nodeKeyHome(key)
     r = requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
-    return r.json()
+    return r
 
 def forwardDelete(key, payload):
     ipPort = nodeKeyHome(key)
     r = requests.delete( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
-    return r.json()
+    return r
 
 def forwardSearch(key, payload):
     ipPort = nodeKeyHome(key)
     r = requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
-    return r.json()
+    return r
 
 def keyIsHome(key):
     dprint("is hash(%s) [%s] == %s"%(key,hash(key) % numShards, shardID))
@@ -247,7 +247,7 @@ def keyIsHome(key):
         return False
     return hash(key) % numShards == shardID
 
-def get_shard_ID(self):
+def get_shard_ID():
     for shard in shard_members:
         for ip in shard:
             if ip == my_ip:
@@ -309,8 +309,14 @@ class kvs_node(Resource):
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
 
+        while (type(payload) is type('str')):
+            payload = json.loads(payload)
+        print("payload of type %s: %s" %(type(payload),payload))
+
         if not keyIsHome(key):
-            return forwardGet(key, payload)
+            r = forwardGet(key, payload)
+            statuscode = r.status_code
+            return Response(json.dumps(r.json()), status=statuscode, mimetype=u'application/json')
 
         if len(payload) == 0:
             nVC = dummy_vector_clock()
@@ -358,7 +364,9 @@ class kvs_node(Resource):
         payload = ast.literal_eval(payload)
 
         if not keyIsHome(key):
-            return forwardDelete(key, payload)
+            r = forwardDelete(key, payload)
+            statuscode = r.status_code
+            return Response(json.dumps(r.json()), status=statuscode, mimetype=u'application/json')
 
         if len(payload) == 0:
             nVC = dummy_vector_clock()
@@ -411,11 +419,12 @@ class kvs_node(Resource):
         if not keyIsHome(key):
             r = forwardPut(key, value, payload)
             statuscode = r.status_code
-            dprint("reponse %s" % r.json())
-            # return r.json()
             return Response(json.dumps(r.json()), status=statuscode, mimetype=u'application/json')
 
         # get the vector_clock from the payload
+        while (type(payload) is type('str')):
+            payload = json.loads(payload)
+        print("payload of type %s: %s" %(type(payload),payload))
         if len(payload) == 0:
             nVC = dummy_vector_clock()
             nTS = time.time()
@@ -445,7 +454,9 @@ class kvs_search(Resource):
     # create payload
     nPayload = build_payload(key)
     if not keyIsHome(key):
-        return forwardSearch(key, nPayload)
+        r = forwardSearch(key, nPayload)
+        statuscode = r.status_code
+        return Response(json.dumps(r.json()), status=statuscode, mimetype=u'application/json')
 
     if key not in key_value_db or key_value_db[key][KVS_DEL_POS] is True:
         return Response(json.dumps({
