@@ -412,8 +412,8 @@ class kvs_node(Resource):
             r = forwardPut(key, value, payload)
             statuscode = r.status_code
             dprint("reponse %s" % r.json())
-            return r.json()
-            return Response(r.json(), status=statuscode, mimetype=u'application/json')
+            # return r.json()
+            return Response(json.dumps(r.json()), status=statuscode, mimetype=u'application/json')
 
         # get the vector_clock from the payload
         if len(payload) == 0:
