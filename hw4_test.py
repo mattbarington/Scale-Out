@@ -548,6 +548,59 @@ class TestHW4(unittest.TestCase):
         newShardIDs = self.checkGetAllShardIds(ipPort)
         self.assertEqual(len(newShardIDs), len(initialShardIDs))
 
+    def test_x3_add_keys_test_hash(self):
+
+        print("TEST X3: ADD KEYS TEST HASH")
+       
+        print(self.view)
+
+        ipPort = self.view[0]["testScriptAddress"]
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+        
+        all_vals = ["joey", "matt", "parker", "ryan", "peter", \
+                "hpg", "ocelot", "america", "film", "echo", "ashton", \
+                "jeep", "stick", "mind", "boi", "test"]
+
+        all_key_vals = {}
+        local_shard_count = [0,0,0]
+
+        for key in all_vals:
+            thisShard = hash(key) % 3
+            local_shard_count[thisShard] = local_shard_count[thisShard] + 1
+            all_key_vals[key] = str(thisShard)
+
+        for k in all_key_vals:
+
+            #print("key: %s "%k)
+            #print("val: %s "%all_key_vals[k])
+ 
+            payload = self.getPayload(ipPort, k)
+
+            payload = self.confirmAddKey(ipPort=ipPort,
+                           key=k,
+                           value=all_key_vals[k],
+                           expectedStatus=200,
+                           expectedMsg="Added successfully",
+                           expectedReplaced=False,
+                           payload= payload)
+
+        print("waiting for 3 seconds...")
+        time.sleep(propogationTime)
+
+        for i in range(6):
+            print(i)
+            curIP = self.view[i]["testScriptAddress"]
+            response = getShardId(curIP)
+            data = response.json()
+            sID = data["id"]
+            #print("shard ID: %s" % sID)
+            response = getCount(curIP, sID)
+            data = response.json()
+            cnt = data["Count"]
+            
+            print("db: " + str(cnt) + " local: " + str(local_shard_count[sID]))
+            self.assertEqual(cnt, local_shard_count[sID])
+
 
     def test_z_add_key_value_one_node(self):
 
