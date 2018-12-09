@@ -739,7 +739,6 @@ class TestHW4(unittest.TestCase):
         targetNode = self.view[-1]["networkIpPortAddress"]
 
         self.confirmAddKey(targetNode, 'key1', 'value1', 200, "Added successfully", False, {})
->>>>>>> 2e0b921df45385107d798bcf2ca5a7374958c37d
 
         self.confirmDeleteNode(ipPort=ipPort,
                                removedAddress=removedNode,
