@@ -55,25 +55,21 @@ def viewMatch(collectedView, expectedView):
     else:
         return True
 
-# Basic Functionality
-# These are the endpoints we should be able to hit
-    #KVS Functions
 def storeKeyValue(ipPort, key, value, payload):
-    #print('PUT: http://%s/keyValue-store/%s'%(str(ipPort), key))
-    print("Sending out payload: %s"%payload)
-    return requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': payload})
+    print('PUT: http://%s/keyValue-store/%s'%(str(ipPort), key))
+    return requests.put('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'val': value, 'payload': json.dumps(payload)}, timeout=5)
 
 def checkKey(ipPort, key, payload):
     #print('GET: http://%s/keyValue-store/search/%s'%(str(ipPort), key))
-    return requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': payload} )
+    return requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
 
 def getKeyValue(ipPort, key, payload):
     #print('GET: http://%s/keyValue-store/%s'%(str(ipPort), key))
-    return requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': payload} )
+    return requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
 
 def deleteKey(ipPort, key, payload):
     #print('DELETE: http://%s/keyValue-store/%s'%(str(ipPort), key))
-    return requests.delete( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': payload} )
+    return requests.delete( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
 
     #Replication Functions
 def addNode(ipPort, newAddress):
@@ -101,7 +97,7 @@ def getCount(ipPort, ID):
     return requests.get( 'http://%s/shard/count/%s'%(str(ipPort), str(ID)) )
 
 def changeShardNumber(ipPort, newNumber):
-    return requests.put( 'http://%s/shard/changeShardNumber'%str(ipPort), data={'num' : newNumber} )
+    return requests.put( 'http://%s/shard/changeShardNumber'%str(ipPort), data={'num' : newNumber} ) 
 
 ###########################################################################################
 
@@ -263,15 +259,27 @@ class TestHW4(unittest.TestCase):
         for member in shard:
             self.assertEqual(self.checkGetMyShardId(member), ID)
 
-    def checkChangeShardNumber(self, ipPort, expectedStatus, expectedResult, newShardNumber):
-        response = changeShardNumber(ipPort, newShardNumber)
-
-        data = response.json()
+    def checkChangeShardNumber(self, ipPort, newNumber, expectedStatus, expectedResult, expectedShardIds, expectedMsg=""):
+        response = changeShardNumber(ipPort, str(newNumber))
 
         self.assertEqual(response.status_code, expectedStatus)
 
-        self.assertEqual(data["result"], expectedResult)
-        return
+        data = response.json()
+        self.assertEqual(data['result'], expectedResult)
+
+        if expectedMsg:
+            self.assertEqual(data['msg'], expectedMsg)
+        else:
+            self.assertEqual(data['shard_ids'], expectedShardIds)
+
+    def checkGetCount(self, ipPort, ID, expectedStatus, expectedResult, expectedCount):
+        response = getCount(ipPort, ID)
+
+        self.assertEqual(response.status_code, expectedStatus)
+
+        data = response.json()
+        self.assertEqual(data['result'], expectedResult)
+        self.assertEqual(data['Count'], expectedCount)
 
 ##########################################################################
 ## Tests start here ##
@@ -568,6 +576,169 @@ class TestHW4(unittest.TestCase):
                            expectedReplaced=True,
                            payload=payload)
 
+        payload = self.confirmCheckKey(ipPort=ipPort,
+                            key=key,
+                            expectedStatus=200,
+                            expectedResult="Success",
+                            expectedIsExists=True,
+                           payload=payload)
+
+        payload = self.confirmGetKey(ipPort=ipPort,
+                           key=key,
+                           expectedStatus=200,
+                           expectedResult="Success",
+                           expectedValue=value,
+                           payload=payload)
+
+     # change S from 3 to 2 using changeShardNumber endpoint
+    def test_f_decrease_shard(self):
+        print("TEST F: decrease shard from 3 to 2")
+        ipPort = self.view[0]["testScriptAddress"]
+        targetNode = self.view[-1]["networkIpPortAddress"]
+
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+
+        self.checkChangeShardNumber(targetNode, 2, 200, "Success", "0,1")
+        time.sleep(propogationTime)
+
+        self.assertEqual(2, len(initialShardIDs)-1)
+
+    # removing 1 node from shard with 2 nodes result number of shards 
+    # to decrease and lonely node to join other shard
+    def test_g_remove_node_causes_shard_decrease(self):
+        print("TEST G: remove node decrease shard")
+        ipPort = self.view[0]["testScriptAddress"]
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        targetNode = self.view[-1]["networkIpPortAddress"]
+
+        self.confirmDeleteNode(ipPort=ipPort, 
+                               removedAddress=removedNode, 
+                               expectedStatus=200, 
+                               expectedResult="Success", 
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        #❗️check first shard (shard id might be different dependending on how you redestribute the nodes)
+        members = self.checkGetMembers(ipPort, 0)
+
+        lonelyNodeInFirstShard = targetNode in members
+
+        self.assertEqual(True, lonelyNodeInFirstShard)
+
+    # changing shard size to 1 causes all nodes to be in that only shard
+    def test_h_change_shard_size_to_one(self):
+        print("TEST H: change shard size to one")
+        ipPort = self.view[0]["testScriptAddress"]
+
+        self.checkChangeShardNumber(ipPort, 1, 200, "Success", "0")
+
+        time.sleep(propogationTime)
+
+        members = self.checkGetMembers(ipPort, 0)
+
+        # check if all members are present
+        for view in self.view:
+            currIpInShard = view['networkIpPortAddress'] in members
+            self.assertEqual(True, currIpInShard)
+
+    # changing shard size from 1 to 2 should have 3 members in each shard
+    def test_i_change_shard_size_from_one_to_two(self):
+        print("TEST I increase shard size from 1 to 2")
+        self.test_h_change_shard_size_to_one()
+
+        ipPortOne = self.view[0]["testScriptAddress"]
+        ipPortTwo = self.view[1]["testScriptAddress"]
+
+        members = self.checkGetMembers(ipPortOne, 0)
+        membersTwo = self.checkGetMembers(ipPortTwo, 0)
+
+        self.checkChangeShardNumber(ipPortOne, 2, 200, "Success", "0,1")
+
+        membersOne = self.checkGetMembers(ipPortOne, 0)
+        membersTwo = self.checkGetMembers(ipPortTwo, 0)
+
+        self.assertEqual(3, len(membersOne))
+        self.assertEqual(3, len(membersTwo))
+
+    # when shard decreased and an isolated node moved to another shard, 
+    # its keys get shared to rest of shard members, and the key's owner is 
+    # consistent with new shard id
+    def test_j_key_redistributed(self):
+        print("TEST J key redistribution")
+        ipPort = self.view[0]["testScriptAddress"]
+        removedNode = self.view.pop()["networkIpPortAddress"]
+        targetNode = self.view[-1]["networkIpPortAddress"]
+
+        self.confirmAddKey(targetNode, 'key1', 'value1', 201, "Added successfully", False, {})
+
+        self.confirmDeleteNode(ipPort=ipPort,
+                               removedAddress=removedNode,
+                               expectedStatus=200, 
+                               expectedResult="Success", 
+                               expectedMsg="Successfully removed %s from view"%removedNode)
+
+        time.sleep(propogationTime)
+
+        #❗️again, expected owner might be different based on different shard mechanic
+        # we use regular hashing and sha1 as hash function -> hash(key1) % 2 = 1
+        self.confirmGetKey(targetNode, 'key1', 200, "Success", 'value1', "1")
+
+        self.confirmGetKey(ipPort, 'key1', 200, "Success", 'value1', "1")
+
+    # setting shard to <=0 should be invalid
+    def test_k_set_shard_to_zero(self):
+        print("TEST k shard to 0")
+        ipPort = self.view[0]["testScriptAddress"]
+        self.checkChangeShardNumber(ipPort, 0, 400, "Error", "", "Must have at least one shard")
+    
+    def test_zyy_add_key_value_then_reshard(self):
+
+        print("TEST ZYY: add keys then reshard")
+
+        ipPort = self.view[0]["testScriptAddress"]
+        key = "addNewKey"
+        
+        initialShardIDs = self.checkGetAllShardIds(ipPort)
+
+        print("Initial Shard IDs (should be 0, 1, 2)")
+        print(initialShardIDs)
+        payload = self.getPayload(ipPort, key)
+
+        payload = self.confirmAddKey(ipPort=ipPort,
+                           key=key,
+                           value="a simple value",
+                           expectedStatus=200,
+                           expectedMsg="Added successfully",
+                           expectedReplaced=False,
+                           payload= payload)
+
+        value = "aNewValue"
+
+        #CRASHES HERE BOYS
+        payload = self.confirmAddKey(ipPort=ipPort,
+                           key=key,
+                           value=value,
+                           expectedStatus=201,
+                           expectedMsg="Updated successfully",
+                           expectedReplaced=True,
+                           payload=payload)
+        
+
+        print("changing shard number to 2")
+        self.checkChangeShardNumber(ipPort=ipPort,
+                               expectedStatus=200,
+                               expectedResult="Success",
+                               newShardNumber=2)
+        print("waiting for 3 seconds...")
+        time.sleep(propogationTime)
+
+        newIDs = self.checkGetAllShardIds(ipPort)
+
+        print("new Shard IDs (should be 0, 1)")
+        print(newIDs)
+
+        print("checking if data was rehashed properly")
         payload = self.confirmCheckKey(ipPort=ipPort,
                             key=key,
                             expectedStatus=200,
