@@ -99,7 +99,14 @@ def nodeWithID(k_hash):
 def shuffleKeysAround():
     for key,v,ts,vc,d in key_value_db:
         key_home = myhash(key) % numShards
+        for k in vc:
+            if k not in view['list']:
+                vc.remove(k)
+        for k in view['list']:
+            if k not in vc:
+                vc[k] = 0
         if key_home != shardID:
+            vc[key_home] = vc[my_ip] + 1
             sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
             del key_value_db[key]
 
@@ -234,6 +241,8 @@ def forwardPut(key, value, payload):
 
 def forwardGet(key, payload):
     ipPort = nodeKeyHome(key)
+    dprint("looks it's my (in forward get) kvs:%s" % key_value_db)
+    dprint("forwarding GET to ipPort %s" % ipPort)
     r = requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
     return r
 
@@ -270,7 +279,10 @@ def get_shard_ID():
 
 def less_than(vc1, vc2):
     all_equal = True
+    dprint(vc1)
+    dprint(vc2)
     for ip in view['list']:
+        dprint("in less_than, compaing (%s,%s) w (%s,%s) " % (ip,vc1[ip],ip,vc2[ip]))
         if ip in vc1 and ip in vc2:
             if vc1[ip] < vc2[ip]:
                 all_equal = False
@@ -326,7 +338,7 @@ class kvs_node(Resource):
         while (type(payload) is type('str')):
             payload = json.loads(payload)
         print("in get payload of type %s: %s" %(type(payload),payload))
-
+        dprint("looks it's my (in get) kvs:%s" % key_value_db)
         if not keyIsHome(key):
             r = forwardGet(key, payload)
             statuscode = r.status_code
@@ -343,7 +355,7 @@ class kvs_node(Resource):
             return Response(json.dumps({
                 'msg': 'Key not valid',
                 'result': 'Error'}))
-
+        dprint("do i got it? %s" % key in key_value_db)
         # ays to return key does not exist if not in db
         # along with payload and 404 status
         if key not in key_value_db:
@@ -353,6 +365,7 @@ class kvs_node(Resource):
                 'payload': json.dumps({})
                 }), status=404, mimetype=u'application/json')
         elif isOlderThan((key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS]),(nVC,nTS)):
+                dprint("myclock:%s \nmessageclock:%s" %((key_value_db[key][KVS_VC_POS],key_value_db[key][KVS_TS_POS]),(nVC,nTS)))
                 return Response(json.dumps({
                     'result':'Error',
                     'msg' : 'Payload out of date',
