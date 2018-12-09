@@ -30,13 +30,13 @@ numShards = int(os.environ.get('S'))
 # list of all shards in the system
 shard_ids = []
 # number of key-value pairs this shard is responsible for
-numberOfKeys = 0
+# numberOfKeys = 0
 # this node's shard
 shardID = 0
 # list of all shard's members as IP addresses
 shard_members = []
 
-GOSSIP_DELAY = 3
+GOSSIP_DELAY = 0.4
 
 def check_shard_size(shard_members):
     if len(shard_members) != 1:
@@ -51,6 +51,11 @@ def check_shard_size(shard_members):
 def dprint(msg):
     print(msg, file=sys.stderr)
 
+def numberOfKeys():
+    count = 0
+    for k in key_value_db:
+        if keyIsHome(k):
+            count += 1
 
 def gossip_kvs():
     while True:
@@ -62,7 +67,6 @@ def gossip_kvs():
                 data, ts, vc, dflag = key_value_db[k]
                 sendKey(random_peer, k, data, (ts, vc, dflag))
 
-
 def gossip_view():
     time.sleep(6)
     while True:
@@ -72,6 +76,23 @@ def gossip_view():
             random_peer = peers[random.randint(0, len(peers) - 1)]
             sendView(random_peer, view)
 
+def nodeKeyHome(key):
+    return nodeWithID(hash(key) % numShards)
+
+def nodeWithID(k_hash):
+    home_IPs = view['shard_members'][k_hash]
+    return home_IPs[0]
+
+def shuffleKeysAround():
+    for key,v,ts,vc,d in key_value_db:
+        key_home = hash(key) % numShards
+        if key_home != shardID:
+            sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
+            del key_value_db[key]
+
+
+def reHashKeys():
+    print('this shoud do something')
 
 def shardNodes(shardSize):
     # if not enough nodes to shard into specified size, default to 1
@@ -97,7 +118,7 @@ def shardNodes(shardSize):
         view['shard_members'] = shard_members
         shard_ids = ["0"]
         # check if this node needs to migrate data
-        if numberOfKeys != 0:
+        if numberOfKeys() != 0:
             reHashKeys()
     else:
         numShards = shardSize
@@ -120,7 +141,7 @@ def shardNodes(shardSize):
         for x in range(0, numShards):
             shard_ids.append(str(x))
 
-        if numberOfKeys != 0:
+        if numberOfKeys() != 0:
             shuffleKeysAround()
 
 
@@ -169,30 +190,10 @@ def increment_clock(vc):
     else:
         return False
 
-
-def reHashKeys():
-    print('this shoud do something')
-
-
 def max(a, b):
     if a > b:
         return a
     return b
-
-def nodeKeyHome(key):
-    return nodeWithID(hash(key) % numShards)
-
-def nodeWithID(k_hash):
-    home_IPs = view['shard_members'][k_hash]
-    return home_IPs[0]
-
-def shuffleKeysAround():
-    for key,v,ts,vc,d in key_value_db:
-        key_home = hash(key) % numShards
-        if key_home != shardID:
-            sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
-            del key_value_db[key]
-
 
 def storeKeyValue(ipPort, key, value, payload):
     return requests.put('http://%s/keyValue-store/%s' % (str(ipPort), key), data={'val': value, 'payload': json.dumps(payload)})
@@ -608,7 +609,7 @@ class kvs_shard_count(Resource):
         if input_id in shard_ids:
             return Response(json.dumps({
                 'result' : 'Success',
-                'Count' : numberOfKeys
+                'Count' : numberOfKeys()
             }),
             status=200, mimetype=u'application/json')
         else:
@@ -644,7 +645,7 @@ class kvs_shard_changeShardNumber(Resource):
             shardNodes(int(newNumber))
             return Response(json.dumps({
               'result' : 'Success',
-              'shard_ids' : shard_ids
+              'shard_ids' : ",".join(sorted(id for id in shard_ids))
             }),
             status=200, mimetype=u'application/json')
 
