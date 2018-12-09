@@ -267,7 +267,8 @@ class TestHW4(unittest.TestCase):
         data = response.json()
         self.assertEqual(data['result'], expectedResult)
 
-        if expectedMsg:
+        if expectedMsg != "":
+            print("\nHELLO THERE \n")
             self.assertEqual(data['msg'], expectedMsg)
         else:
             self.assertEqual(data['shard_ids'], expectedShardIds)
@@ -404,7 +405,9 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=400,
                                expectedResult="Error",
-                               newShardNumber=3)
+                               newNumber=3,
+                               expectedShardIds=3,
+                               expectedMsg="Not enough nodes. 3 shards result in a nonfault tolerant shard")
 
         # add a node back, confirm its addition
         print("Adding a node back")
@@ -435,7 +438,8 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
-                               newShardNumber=3)
+                               newNumber=3,
+                               expectedShardIds='0,1,2')
 
     # Test Case: x2
     # Description: 
@@ -551,7 +555,9 @@ class TestHW4(unittest.TestCase):
     def test_x3_add_keys_test_hash(self):
 
         print("TEST X3: ADD KEYS TEST HASH")
-        
+       
+        print(self.view)
+
         ipPort = self.view[0]["testScriptAddress"]
         initialShardIDs = self.checkGetAllShardIds(ipPort)
         
@@ -569,7 +575,8 @@ class TestHW4(unittest.TestCase):
 
         for k in all_key_vals:
 
-            print("key: %s , val: %s", k, all_key_vals[k])
+            #print("key: %s "%k)
+            #print("val: %s "%all_key_vals[k])
  
             payload = self.getPayload(ipPort, k)
 
@@ -584,7 +591,19 @@ class TestHW4(unittest.TestCase):
         print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
-
+        for i in range(6):
+            print(i)
+            curIP = self.view[i]["testScriptAddress"]
+            response = getShardId(curIP)
+            data = response.json()
+            sID = data["id"]
+            #print("shard ID: %s" % sID)
+            response = getCount(curIP, sID)
+            data = response.json()
+            cnt = data["Count"]
+            
+            print("db: " + str(cnt) + " local: " + str(local_shard_count[sID]))
+            self.assertEqual(cnt, local_shard_count[sID])
 
 
     def test_z_add_key_value_one_node(self):
@@ -767,7 +786,8 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
-                               newShardNumber=2)
+                               newNumber=2,
+                               expectedShardIds='0,1')
         print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
