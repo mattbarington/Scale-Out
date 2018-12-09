@@ -39,9 +39,10 @@ shard_members = []
 GOSSIP_DELAY = 3
 
 def check_shard_size(shard_members):
-    for shard in shard_members:
-        if len(shard) < 2:
-            shardNodes(numShards -  1)
+    if len(shard_members) != 1:
+        for shard in shard_members:
+            if len(shard) < 2:
+                shardNodes(numShards -  1)
 
 
 # FUNCTION: dprint
@@ -93,6 +94,7 @@ def shardNodes(shardSize):
         numShards = 1
         shardID = 0
         shard_members.append(view['list'])
+        view['shard_members'] = shard_members
         shard_ids = ["0"]
         # check if this node needs to migrate data
         if numberOfKeys != 0:
@@ -112,12 +114,14 @@ def shardNodes(shardSize):
                 if shard[j] == i:
                     shard_members[i].append(view['list'][j])
 
+        view['shard_members'] = shard_members
+
         shard_ids = []
         for x in range(0, numShards):
             shard_ids.append(str(x))
 
         if numberOfKeys != 0:
-            reHashKeys()
+            shuffleKeysAround()
 
 
 shardNodes(numShards)
@@ -242,6 +246,13 @@ def keyIsHome(key):
         dprint("False")
         return False
     return hash(key) % numShards == shardID
+
+def get_shard_ID(self):
+    for shard in shard_members:
+        for ip in shard:
+            if ip == my_ip:
+                return shard
+    return ""
 
 def less_than(vc1, vc2):
     all_equal = True
@@ -475,6 +486,7 @@ class kvs_view(Resource):
                 if ip_port in shard:
                     shard.remove(ip_port)
 
+            # check to see if resharding is needed
             check_shard_size(view['shard_members'])
 
             broadcastView(view)
@@ -536,7 +548,19 @@ class dis_view(Resource):
             # dprint("%s is less than %s" %( view['updated'],msg_view['updated']))
             view['list'] = copy.deepcopy(msg_view['list'])
             view['updated'] = msg_view['updated']
+            view['shard_members'] = msg_view['shard_members']
             # dprint('this is my view now: %s' % view)
+
+            # reshuffle keys if need be
+            newShard = get_shard_ID()
+            if(newShard != shardID):
+                dprint("Shard number changed by gossip")
+                dprint("Old Shard number: %s" % shardID)
+                shardID = newShard
+                dprint("New Shard number: %s" % shardID)
+                dprint("calling reshuffle for data")
+                shuffleKeysAround()
+
 
 class kvs_shard_my_id(Resource):
     def get(self):
@@ -598,7 +622,7 @@ class kvs_shard_changeShardNumber(Resource):
         #        'msg' : 'Not enough nodes for ' + newNumber + ' shards'
         #    }),
         #    status=400, mimetype=u'application/json')
-        elif ((len(view['list']))/2) < newNumber:
+        elif ((len(view['list']))//2) < int(newNumber):
             return Response(json.dumps({
                 'result' : 'Error',
                 'msg' : 'Not enough nodes. ' + newNumber + ' shards result in a nonfault tolerant shard'
