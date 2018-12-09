@@ -32,6 +32,14 @@ propogationTime = 3 #sets number of seconds we sleep after certain actions to le
 
 dc = docker_control.docker_controller(networkName, needSudo)
 
+def myhash(s):
+    m = 1272844112
+    p = 0.61803399
+    k = 0
+    for char in s:
+        k ^= ord(char)
+    return int(m*((k*p)-int(k*p)))
+
 def getViewString(view):
     listOStrings = []
     for instance in view:
@@ -571,7 +579,7 @@ class TestHW4(unittest.TestCase):
         local_shard_count = [0,0,0]
 
         for key in all_vals:
-            thisShard = hash(key) % 3
+            thisShard = myhash(key) % 3
             local_shard_count[thisShard] = local_shard_count[thisShard] + 1
             all_key_vals[key] = str(thisShard)
 
@@ -605,7 +613,7 @@ class TestHW4(unittest.TestCase):
             cnt = data["Count"]
             
             print("db: " + str(cnt) + " local: " + str(local_shard_count[sID]))
-            # self.assertEqual(cnt, local_shard_count[sID])
+            self.assertEqual(cnt, local_shard_count[sID])
 
 
     def test_z_add_key_value_one_node(self):

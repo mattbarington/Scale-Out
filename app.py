@@ -46,6 +46,14 @@ def check_shard_size(shard_members):
             if len(shard) < 2:
                 shardNodes(numShards -  1)
 
+def myhash(s):
+    m = 1272844112
+    p = 0.61803399
+    k = 0
+    for char in s:
+        k ^= ord(char)
+    return int(m*((k*p)-int(k*p)))
+
 
 # FUNCTION: dprint
 # DESCRIPTION: print() for stderr so that it will actually work
@@ -81,7 +89,7 @@ def gossip_view():
             sendView(random_peer, view)
 
 def nodeKeyHome(key):
-    return nodeWithID(hash(key) % numShards)
+    return nodeWithID(myhash(key) % numShards)
 
 def nodeWithID(k_hash):
     home_IPs = view['shard_members'][k_hash]
@@ -89,7 +97,7 @@ def nodeWithID(k_hash):
 
 def shuffleKeysAround():
     for key,v,ts,vc,d in key_value_db:
-        key_home = hash(key) % numShards
+        key_home = myhash(key) % numShards
         if key_home != shardID:
             sendKey(nodeWithID(key_home), key, value, (ts, vc, d))
             del key_value_db[key]
@@ -243,14 +251,14 @@ def forwardSearch(key, payload):
     return r
 
 def keyIsHome(key):
-    dprint("is hash(%s) [%s] == %s"%(key,hash(key) % numShards, shardID))
-    if hash(key) % numShards == shardID:
+    dprint("is myhash(%s) [%s] == %s"%(key,myhash(key) % numShards, shardID))
+    if myhash(key) % numShards == shardID:
         dprint("True")
         return True
     else:
         dprint("False")
         return False
-    return hash(key) % numShards == shardID
+    return myhash(key) % numShards == shardID
 
 def get_shard_ID():
     for shard in shard_members:
