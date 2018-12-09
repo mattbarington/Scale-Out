@@ -297,9 +297,12 @@ def isOlderThan(a, b):
     vcA, tsA = a
     vcB, tsB = b
     if less_than(vcA, vcB):
+        dprint("it's true! %s is < %s" % (vcA, vcB))
         return True
-    if less_than(vcA, vcB):
+    if less_than(vcB, vcA):
+        dprint("it's a LIE! %s is > %s" % (vcA, vcB))
         return False
+    dprint("We'll let the times work it out, man")
     return tsA < tsB
 
 
