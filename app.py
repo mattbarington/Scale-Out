@@ -36,7 +36,7 @@ shardID = 0
 # list of all shard's members as IP addresses
 shard_members = []
 
-GOSSIP_DELAY = 3
+GOSSIP_DELAY = 0.1
 
 def check_shard_size(shard_members):
     if len(shard_members) != 1:
@@ -355,6 +355,7 @@ class kvs_node(Resource):
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][KVS_VAL_POS],
+            'owner' : str(hash(key) % numShards),
             'payload' :  json.dumps(build_payload(key)),
         }), status=200, mimetype=u'application/json')
 
@@ -468,6 +469,7 @@ class kvs_search(Resource):
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
+            'owner' : str(hash(key) % numShards),
             'payload':  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
 
@@ -627,12 +629,12 @@ class kvs_shard_changeShardNumber(Resource):
               'msg' : 'Must have at least one shard'
           }),
           status=400, mimetype=u'application/json')
-        #elif int(newNumber) <= numShards:
-        #    return Response(json.dumps({
-        #        'result' : 'Error',
-        #        'msg' : 'Not enough nodes for ' + newNumber + ' shards'
-        #    }),
-        #    status=400, mimetype=u'application/json')
+        elif len(view['list']) <= int(newNumber):
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'Not enough nodes for ' + newNumber + ' shards'
+            }),
+            status=400, mimetype=u'application/json')
         elif ((len(view['list']))//2) < int(newNumber):
             return Response(json.dumps({
                 'result' : 'Error',
