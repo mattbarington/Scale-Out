@@ -10,6 +10,8 @@ import threading, random, time
 app = Flask(__name__)
 api = Api(app)
 
+PYTHONHASHSEED = 0
+
 parser = reqparse.RequestParser()
 
 # KVS: spec
@@ -56,6 +58,8 @@ def numberOfKeys():
     for k in key_value_db:
         if keyIsHome(k):
             count += 1
+
+    return count
 
 def gossip_kvs():
     while True:
