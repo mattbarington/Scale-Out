@@ -90,7 +90,7 @@ def gossip_view():
             sendView(random_peer, view)
 
 def nodeKeyHome(key):
-    return nodeWithID(myhash(key) % numShards)
+    return nodeWithID(myhash(key) % len(view['shard_members']))
 
 def nodeWithID(k_hash):
     home_IPs = view['shard_members'][k_hash]
@@ -98,7 +98,7 @@ def nodeWithID(k_hash):
 
 def shuffleKeysAround():
     for key,v,ts,vc,d in key_value_db:
-        key_home = myhash(key) % numShards
+        key_home = myhash(key) % len(view['shard_members'])
         for k in vc:
             if k not in view['list']:
                 vc.remove(k)
@@ -257,11 +257,6 @@ def forwardSearch(key, payload):
     return r
 
 def keyIsHome(key):
-    dprint("is myhash(%s) [%s] == %s"%(key,myhash(key) % len(view['shard_members']), shardID))
-    dprint("key hash: %s" % myhash(key))
-    dprint("my_chard_id %s" % shardID)
-    dprint("my numshards: %s" % numShards)
-    dprint("chard_members size: %s" % len(view['shard_members']))
     if myhash(key) % len(view['shard_members']) == shardID:
         dprint("True")
         return True
@@ -385,7 +380,7 @@ class kvs_node(Resource):
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][KVS_VAL_POS],
-            'owner' : str(myhash(key) % numShards),
+            'owner' : str(myhash(key) % len(view['shard_members'])),
             'payload' :  json.dumps(build_payload(key)),
         }), status=200, mimetype=u'application/json')
 
@@ -499,7 +494,7 @@ class kvs_search(Resource):
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
-            'owner' : str(myhash(key) % numShards),
+            'owner' : str(myhash(key) % len(view['shard_members'])),
             'payload':  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
 
