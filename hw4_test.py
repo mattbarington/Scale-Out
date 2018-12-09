@@ -657,7 +657,7 @@ class TestHW4(unittest.TestCase):
 
         initialShardIDs = self.checkGetAllShardIds(ipPort)
 
-        self.checkChangeShardNumber(targetNode, 2, 200, "Success", "0, 1")
+        self.checkChangeShardNumber(targetNode, 2, 200, "Success", "0,1")
         time.sleep(propogationTime)
 
         self.assertEqual(2, len(initialShardIDs)-1)
@@ -712,7 +712,7 @@ class TestHW4(unittest.TestCase):
         members = self.checkGetMembers(ipPortOne, 0)
         membersTwo = self.checkGetMembers(ipPortTwo, 0)
 
-        self.checkChangeShardNumber(ipPortOne, 2, 200, "Success", "0, 1")
+        self.checkChangeShardNumber(ipPortOne, 2, 200, "Success", "0,1")
 
         membersOne = self.checkGetMembers(ipPortOne, 0)
         membersTwo = self.checkGetMembers(ipPortTwo, 0)
