@@ -368,6 +368,7 @@ class kvs_node(Resource):
         return Response(json.dumps({
             'result' : 'Success',
             'value' : key_value_db[key][KVS_VAL_POS],
+            'owner' : str(hash(key) % numShards),
             'payload' :  json.dumps(build_payload(key)),
         }), status=200, mimetype=u'application/json')
 
@@ -481,6 +482,7 @@ class kvs_search(Resource):
         return Response(json.dumps({
             'isExists': True,
             'result':'Success',
+            'owner' : str(hash(key) % numShards),
             'payload':  json.dumps(nPayload)}),
             status=200, mimetype=u'application/json')
 
@@ -552,7 +554,6 @@ class dis_kvs(Resource):
         payload = request.form.get('payload')
         ts, vc, dflag = json.loads(payload)
         # dprint("PUT Ing from %s : %s" %(request.remote_addr,json.loads(payload)))
-
         if key in key_value_db:
             kVC = key_value_db[key][KVS_VC_POS]
             kTS = key_value_db[key][KVS_TS_POS]
@@ -580,10 +581,10 @@ class dis_view(Resource):
             if(newShard != shardID):
                 dprint("Shard number changed by gossip")
                 dprint("Old Shard number: %s" % shardID)
-                shardID = newShard
+                shardNodes()
                 dprint("New Shard number: %s" % shardID)
                 dprint("calling reshuffle for data")
-                shuffleKeysAround()
+                # shuffleKeysAround()
 
 
 class kvs_shard_my_id(Resource):
@@ -640,12 +641,12 @@ class kvs_shard_changeShardNumber(Resource):
               'msg' : 'Must have at least one shard'
           }),
           status=400, mimetype=u'application/json')
-        #elif int(newNumber) <= numShards:
-        #    return Response(json.dumps({
-        #        'result' : 'Error',
-        #        'msg' : 'Not enough nodes for ' + newNumber + ' shards'
-        #    }),
-        #    status=400, mimetype=u'application/json')
+        elif len(view['list']) <= int(newNumber):
+            return Response(json.dumps({
+                'result' : 'Error',
+                'msg' : 'Not enough nodes for ' + newNumber + ' shards'
+            }),
+            status=400, mimetype=u'application/json')
         elif ((len(view['list']))//2) < int(newNumber):
             return Response(json.dumps({
                 'result' : 'Error',
