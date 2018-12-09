@@ -269,7 +269,8 @@ class TestHW4(unittest.TestCase):
         data = response.json()
         self.assertEqual(data['result'], expectedResult)
 
-        if expectedMsg:
+        if expectedMsg != "":
+            print("\nHELLO THERE \n")
             self.assertEqual(data['msg'], expectedMsg)
         else:
             self.assertEqual(data['shard_ids'], expectedShardIds)
@@ -406,7 +407,9 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=400,
                                expectedResult="Error",
-                               newShardNumber=3)
+                               newNumber=3,
+                               expectedShardIds=3,
+                               expectedMsg="Not enough nodes. 3 shards result in a nonfault tolerant shard")
 
         # add a node back, confirm its addition
         print("Adding a node back")
@@ -437,7 +440,8 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
-                               newShardNumber=3)
+                               newNumber=3,
+                               expectedShardIds='0,1,2')
 
     # Test Case: x2
     # Description: 
@@ -784,7 +788,8 @@ class TestHW4(unittest.TestCase):
         self.checkChangeShardNumber(ipPort=ipPort,
                                expectedStatus=200,
                                expectedResult="Success",
-                               newShardNumber=2)
+                               newNumber=2,
+                               expectedShardIds='0,1')
         print("waiting for 3 seconds...")
         time.sleep(propogationTime)
 
