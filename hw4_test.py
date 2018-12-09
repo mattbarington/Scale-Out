@@ -733,11 +733,16 @@ class TestHW4(unittest.TestCase):
     # consistent with new shard id
     def test_j_key_redistributed(self):
         print("TEST J key redistribution")
+        print(self.view)
         ipPort = self.view[0]["testScriptAddress"]
         removedNode = self.view.pop()["networkIpPortAddress"]
         targetNode = self.view[-1]["networkIpPortAddress"]
 
-        self.confirmAddKey(targetNode, 'key1', 'value1', 201, "Added successfully", False, {})
+        print("Adding key")
+
+        self.confirmAddKey(targetNode, 'key1', 'value1', 200, "Added successfully", False, {})
+
+        print("Deleting key")
 
         self.confirmDeleteNode(ipPort=ipPort,
                                removedAddress=removedNode,
