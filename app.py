@@ -56,7 +56,6 @@ def gossip_kvs():
     while True:
         time.sleep(GOSSIP_DELAY)
         peers = list(set(view['list']) - {my_ip})
-        dprint("TRYNNA gossip")
         if len(peers) > 0:
             random_peer = peers[random.randint(0, len(peers) - 1)]
             dprint('gossipping kvs:%s'%key_value_db)
@@ -123,7 +122,7 @@ def shardNodes(shardSize):
             shard_ids.append(str(x))
 
         if numberOfKeys != 0:
-            reHashKeys()
+            shuffleKeysAround()
 
 
 shardNodes(numShards)
@@ -235,6 +234,13 @@ def forwardSearch(key, payload):
     ipPort = nodeKeyHome(key)
     return requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
 
+
+def get_shard_ID(self):
+    for shard in shard_members:
+        for ip in shard:
+            if ip == my_ip:
+                return shard
+    return ""
 
 def less_than(vc1, vc2):
     all_equal = True
@@ -514,7 +520,19 @@ class dis_view(Resource):
             # dprint("%s is less than %s" %( view['updated'],msg_view['updated']))
             view['list'] = copy.deepcopy(msg_view['list'])
             view['updated'] = msg_view['updated']
+            view['shard_members'] = msg_view['shard_members']
             # dprint('this is my view now: %s' % view)
+
+            # reshuffle keys if need be
+            newShard = get_shard_ID()
+            if(newShard != shardID):
+                dprint("Shard number changed by gossip")
+                dprint("Old Shard number: %s" % shardID)
+                shardID = newShard
+                dprint("New Shard number: %s" % shardID)
+                dprint("calling reshuffle for data")
+                shuffleKeysAround()
+                
 
 class kvs_shard_my_id(Resource):
     def get(self):

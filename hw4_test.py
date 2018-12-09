@@ -293,8 +293,11 @@ class TestHW4(unittest.TestCase):
         ipPort = self.view[0]["testScriptAddress"]
 
         ID = self.checkGetMyShardId(ipPort)
+        print("Getting all shard ID's")
         self.checkGetAllShardIds(ipPort)
+        print("Checking members in shards")
         self.checkGetMembers(ipPort, ID)
+        print("Getting shard views")
         self.getShardView(ipPort)
 
     # check everyone agrees about who is where
@@ -302,8 +305,10 @@ class TestHW4(unittest.TestCase):
         print("TEST B: SHARD CONSISTENT VIEW")
         ipPort = self.view[0]["testScriptAddress"]
 
+        print("Getting shard view of %s" % ipPort)
         shardView = self.getShardView(ipPort)
         for ID in shardView.keys():
+            print("Checking consistent membership for %s" % ID)
             self.checkConsistentMembership(ipPort, ID)
 
     # no node is alone in a shard
