@@ -21,7 +21,7 @@ KVS_DEL_POS = 3
 
 key_value_db = {}
 
-view = {'list': os.environ.get('VIEW').split(','), 'updated': time.time()}
+view = {'list': os.environ.get('VIEW').split(','), 'updated': time.time(), 'shard_members' : []}
 view['list'].sort()
 my_ip = os.environ.get('IP_PORT')
 
@@ -36,7 +36,7 @@ shardID = 0
 # list of all shard's members as IP addresses
 shard_members = []
 
-GOSSIP_DELAY = 0.3
+GOSSIP_DELAY = 3
 
 def check_shard_size(shard_members):
     for shard in shard_members:
@@ -54,11 +54,9 @@ def dprint(msg):
 def gossip_kvs():
     while True:
         time.sleep(GOSSIP_DELAY)
-        peers = list(set(view['list']) - {my_ip})
-        dprint("TRYNNA gossip")
+        peers = list(set(view['shard_members'][shardID]) - {my_ip})
         if len(peers) > 0:
             random_peer = peers[random.randint(0, len(peers) - 1)]
-            dprint('gossipping kvs:%s'%key_value_db)
             for k in key_value_db:
                 data, ts, vc, dflag = key_value_db[k]
                 sendKey(random_peer, k, data, (ts, vc, dflag))
@@ -138,15 +136,15 @@ def build_payload(key):
         # get payload values from KVS
         bPayload["vc"] = key_value_db[key][KVS_VC_POS]
         bPayload["timestamp"] = key_value_db[key][KVS_TS_POS]
-        dprint(bPayload)
+        # dprint(bPayload)
     else:
         dprint(key + " does not exist")
         # create a dummy payload
         bPayload["vc"] = dummy_vector_clock()
         bPayload["timestamp"] = time.time()
-        dprint('bpayload!:')
-        dprint(bPayload)
-        dprint('that wat the ting!:')
+        # dprint('bpayload!:')
+        # dprint(bPayload)
+        # dprint('that wat the ting!:')
     return bPayload
 
 # FUNCTION: dummy_vector_clock
@@ -197,7 +195,7 @@ def storeKeyValue(ipPort, key, value, payload):
 
 
 def sendKey(ipPort, key, value, payload):
-    dprint("SENDKEY: sending {%s: %s} to %s" % (key, value, ipPort))
+    # dprint("SENDKEY: sending {%s: %s} to %s" % (key, value, ipPort))
     requests.put('http://%s/gossip/%s' % (str(ipPort), key),
                  data={'val': value, 'payload': json.dumps(payload)})
 
@@ -217,24 +215,37 @@ def broadcastStore(key, value, ts, vc, dflag):
 
 def forwardPut(key, value, payload):
     ipPort = nodeKeyHome(key)
-    return requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': json.dumps(payload)})
+    r = requests.put( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'val':value, 'payload': json.dumps(payload)})
+    return r
 
 def forwardGet(key, payload):
     ipPort = nodeKeyHome(key)
-    return requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+    r = requests.get( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+    return r.json()
 
 def forwardDelete(key, payload):
     ipPort = nodeKeyHome(key)
-    return requests.deleted( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+    r = requests.delete( 'http://%s/keyValue-store/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)})
+    return r.json()
 
 def forwardSearch(key, payload):
     ipPort = nodeKeyHome(key)
-    return requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
+    r = requests.get( 'http://%s/keyValue-store/search/%s'%(str(ipPort), key), data={'payload': json.dumps(payload)} )
+    return r.json()
 
+def keyIsHome(key):
+    dprint("is hash(%s) [%s] == %s"%(key,hash(key) % numShards, shardID))
+    if hash(key) % numShards == shardID:
+        dprint("True")
+        return True
+    else:
+        dprint("False")
+        return False
+    return hash(key) % numShards == shardID
 
 def less_than(vc1, vc2):
     all_equal = True
-    for ip in view_list:
+    for ip in view['list']:
         if ip in vc1 and ip in vc2:
             if vc1[ip] < vc2[ip]:
                 all_equal = False
@@ -263,29 +274,33 @@ class kvs_node(Resource):
                 'msg': 'Key not valid',
                 'result': 'Error'
             }), status=400, mimetype=u'application/json')
-        broadcastStore(key, data, ts, vc, dflag)
         if key not in key_value_db or key_value_db[key][KVS_DEL_POS] is True:
             key_value_db[key] = (data, ts, vc, dflag)
             nPayload = build_payload(key)
-            return Response(json.dumps({
+            r = Response(json.dumps({
                 'replaced': False,
                 'msg': 'Added successfully',
                 'payload': json.dumps(nPayload),
             }), status=200, mimetype=u'application/json')
         else:
+            dprint("updating from %s " % key_value_db[key][KVS_VAL_POS])
             key_value_db[key] = (data, ts, vc, dflag)
             nPayload = build_payload(key)
-            return Response(json.dumps({
+            r = Response(json.dumps({
                 'replaced': True,
                 'msg': 'Updated successfully',
                 'payload': json.dumps(nPayload),
             }), status=201, mimetype=u'application/json')
-
+        broadcastStore(key, data, ts, vc, dflag)
+        return r
     def get(self, key):
         dprint("GET")
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
-        dprint("check out this payload: %s" % payload)
+
+        if not keyIsHome(key):
+            return forwardGet(key, payload)
+
         if len(payload) == 0:
             nVC = dummy_vector_clock()
             nTS = time.time()
@@ -330,6 +345,10 @@ class kvs_node(Resource):
         dprint("DELETE")
         payload = request.form.get('payload')
         payload = ast.literal_eval(payload)
+
+        if not keyIsHome(key):
+            return forwardDelete(key, payload)
+
         if len(payload) == 0:
             nVC = dummy_vector_clock()
             nTS = time.time()
@@ -378,6 +397,13 @@ class kvs_node(Resource):
 
         payload = ast.literal_eval(request.form.get('payload'))
 
+        if not keyIsHome(key):
+            r = forwardPut(key, value, payload)
+            statuscode = r.status_code
+            dprint("reponse %s" % r.json())
+            return r.json()
+            return Response(r.json(), status=statuscode, mimetype=u'application/json')
+
         # get the vector_clock from the payload
         if len(payload) == 0:
             nVC = dummy_vector_clock()
@@ -404,10 +430,11 @@ class kvs_node(Resource):
 
 class kvs_search(Resource):
   def get(self, key):
-
     dprint("kvs_search - get")
     # create payload
     nPayload = build_payload(key)
+    if not keyIsHome(key):
+        return forwardSearch(key, nPayload)
 
     if key not in key_value_db or key_value_db[key][KVS_DEL_POS] is True:
         return Response(json.dumps({
