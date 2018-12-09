@@ -1,4 +1,4 @@
 Parker: Fixed sharding logic, view delete resharding 
-Matt: Implement vector clock stucture + basic broadcast + some view change propogation
+Matt: implement anti-entropy, general development, abstract sharding logic, key shuffle.
 Joey: Sharding logic/functions and error checking
 Ryan: abstract of sharding logic, vector clocks, general development, test cases
