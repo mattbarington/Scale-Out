@@ -546,7 +546,6 @@ class dis_kvs(Resource):
         payload = request.form.get('payload')
         ts, vc, dflag = json.loads(payload)
         # dprint("PUT Ing from %s : %s" %(request.remote_addr,json.loads(payload)))
-
         if key in key_value_db:
             kVC = key_value_db[key][KVS_VC_POS]
             kTS = key_value_db[key][KVS_TS_POS]
@@ -574,10 +573,10 @@ class dis_view(Resource):
             if(newShard != shardID):
                 dprint("Shard number changed by gossip")
                 dprint("Old Shard number: %s" % shardID)
-                shardID = newShard
+                shardNodes()
                 dprint("New Shard number: %s" % shardID)
                 dprint("calling reshuffle for data")
-                shuffleKeysAround()
+                # shuffleKeysAround()
 
 
 class kvs_shard_my_id(Resource):
